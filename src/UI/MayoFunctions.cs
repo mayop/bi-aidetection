@@ -5,17 +5,23 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Diagnostics;
 
+using System.Reflection;
+
 using Telegram.Bot;
+using Telegram.Bot.Args;
+using Telegram.Bot.Types;
+using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.InputFiles;
 
 using System.Threading.Tasks;
 
 using File = System.IO.File;
+using System.Runtime;
 
 namespace AITool
 {   public class MayoFunctions
     {
-        //static ITelegramBotClient botClient;
+        static ITelegramBotClient botClient;
 
         // ************************************************************************
         public void SaveDetectedImage(Bitmap detectedImage, string fileprefix, string filesuffix, string image_path)
@@ -296,11 +302,9 @@ namespace AITool
         }
 
         // ************************************************************************
-        /*
-         * public void StartTelegramListener(string access_token)
+        public void StartTelegramListener(string access_token)
         {
             botClient = new TelegramBotClient(access_token);
-            var me = botClient.GetMeAsync().Result;
             botClient.OnMessage += TelegramBot_OnMessage;
             botClient.StartReceiving();
             //botClient.StopReceiving();
@@ -309,13 +313,23 @@ namespace AITool
         public static async void TelegramBot_OnMessage(object sender, MessageEventArgs e)
         {
             if (e.Message.Text != null)
-            { 
-                //if (e.Message.Text == "quit") {  }
-                await botClient.SendTextMessageAsync( chatId: e.Message.Chat, text: "You said:\n" + e.Message.Text  );
-            }
-        }
+            {
+                string strReply = "";
+                string strCommand = e.Message.Text.Split(' ')[0].Trim();
 
-        */
+                switch (strCommand)
+                {
+                    case "/info": strReply = "Info Command"; break;
+                    case "/version":
+                        string AssemVer = Assembly.GetExecutingAssembly().GetName().Version.ToString();
+                        strReply = $"Version {AssemVer} built on {Global.RetrieveLinkerTimestamp()}";
+                        break;
+                    default: strReply = "Invalid Command"; break;
+                }
+                
+                await botClient.SendTextMessageAsync( chatId: e.Message.Chat, text: strReply);
+            }
+        }       
 
     }
 

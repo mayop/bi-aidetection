@@ -172,6 +172,10 @@ namespace AITool
                 MayoFunc.DrectoryCheck();
                 MayoFunc.PurgeFiles("./detections/", ".jpg", 14);
 
+                if (AppSettings.Settings.telegram_token != "")
+                {
+                    MayoFunc.StartTelegramListener(AppSettings.Settings.telegram_token);
+                }                
 
                 //check if history.csv exists, if not then create it
                 if (!System.IO.File.Exists(AppSettings.Settings.HistoryFileName))

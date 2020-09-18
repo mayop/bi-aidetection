@@ -33,6 +33,7 @@
             this.btnCancel = new System.Windows.Forms.Button();
             this.btnSave = new System.Windows.Forms.Button();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.cb_mask_telegram = new System.Windows.Forms.CheckBox();
             this.cb_mergeannotations = new System.Windows.Forms.CheckBox();
             this.tb_network_folder_filename = new System.Windows.Forms.TextBox();
             this.label8 = new System.Windows.Forms.Label();
@@ -62,7 +63,6 @@
             this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
             this.label3 = new System.Windows.Forms.Label();
             this.btTest = new System.Windows.Forms.Button();
-            this.cb_mask_telegram = new System.Windows.Forms.CheckBox();
             this.groupBox1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -127,18 +127,28 @@
             this.groupBox1.Controls.Add(this.label6);
             this.groupBox1.Controls.Add(this.tb_cooldown);
             this.groupBox1.Location = new System.Drawing.Point(7, 83);
-            this.groupBox1.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.groupBox1.Margin = new System.Windows.Forms.Padding(2);
             this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Padding = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.groupBox1.Padding = new System.Windows.Forms.Padding(2);
             this.groupBox1.Size = new System.Drawing.Size(660, 280);
             this.groupBox1.TabIndex = 4;
             this.groupBox1.TabStop = false;
+            // 
+            // cb_mask_telegram
+            // 
+            this.cb_mask_telegram.AutoSize = true;
+            this.cb_mask_telegram.Location = new System.Drawing.Point(546, 17);
+            this.cb_mask_telegram.Name = "cb_mask_telegram";
+            this.cb_mask_telegram.Size = new System.Drawing.Size(105, 19);
+            this.cb_mask_telegram.TabIndex = 47;
+            this.cb_mask_telegram.Text = "Telegram Mask";
+            this.cb_mask_telegram.UseVisualStyleBackColor = true;
             // 
             // cb_mergeannotations
             // 
             this.cb_mergeannotations.AutoSize = true;
             this.cb_mergeannotations.Location = new System.Drawing.Point(249, 17);
-            this.cb_mergeannotations.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.cb_mergeannotations.Margin = new System.Windows.Forms.Padding(2);
             this.cb_mergeannotations.Name = "cb_mergeannotations";
             this.cb_mergeannotations.Size = new System.Drawing.Size(196, 19);
             this.cb_mergeannotations.TabIndex = 46;
@@ -151,7 +161,7 @@
             this.tb_network_folder_filename.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.tb_network_folder_filename.Location = new System.Drawing.Point(471, 72);
-            this.tb_network_folder_filename.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.tb_network_folder_filename.Margin = new System.Windows.Forms.Padding(2);
             this.tb_network_folder_filename.Name = "tb_network_folder_filename";
             this.tb_network_folder_filename.Size = new System.Drawing.Size(180, 23);
             this.tb_network_folder_filename.TabIndex = 45;
@@ -183,7 +193,7 @@
             this.tb_telegram_caption.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.tb_telegram_caption.Location = new System.Drawing.Point(249, 45);
-            this.tb_telegram_caption.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.tb_telegram_caption.Margin = new System.Windows.Forms.Padding(2);
             this.tb_telegram_caption.Name = "tb_telegram_caption";
             this.tb_telegram_caption.Size = new System.Drawing.Size(402, 23);
             this.tb_telegram_caption.TabIndex = 42;
@@ -226,7 +236,7 @@
             this.tb_MQTT_Payload.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.tb_MQTT_Payload.Location = new System.Drawing.Point(471, 147);
-            this.tb_MQTT_Payload.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.tb_MQTT_Payload.Margin = new System.Windows.Forms.Padding(2);
             this.tb_MQTT_Payload.Name = "tb_MQTT_Payload";
             this.tb_MQTT_Payload.Size = new System.Drawing.Size(180, 23);
             this.tb_MQTT_Payload.TabIndex = 38;
@@ -234,7 +244,7 @@
             // tb_MQTT_Topic
             // 
             this.tb_MQTT_Topic.Location = new System.Drawing.Point(197, 147);
-            this.tb_MQTT_Topic.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.tb_MQTT_Topic.Margin = new System.Windows.Forms.Padding(2);
             this.tb_MQTT_Topic.Name = "tb_MQTT_Topic";
             this.tb_MQTT_Topic.Size = new System.Drawing.Size(211, 23);
             this.tb_MQTT_Topic.TabIndex = 37;
@@ -253,7 +263,7 @@
             // 
             this.cb_MQTT_enabled.AutoSize = true;
             this.cb_MQTT_enabled.Location = new System.Drawing.Point(7, 147);
-            this.cb_MQTT_enabled.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.cb_MQTT_enabled.Margin = new System.Windows.Forms.Padding(2);
             this.cb_MQTT_enabled.Name = "cb_MQTT_enabled";
             this.cb_MQTT_enabled.Size = new System.Drawing.Size(60, 19);
             this.cb_MQTT_enabled.TabIndex = 35;
@@ -266,7 +276,7 @@
             this.tb_Sounds.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.tb_Sounds.Location = new System.Drawing.Point(197, 122);
-            this.tb_Sounds.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.tb_Sounds.Margin = new System.Windows.Forms.Padding(2);
             this.tb_Sounds.Name = "tb_Sounds";
             this.tb_Sounds.Size = new System.Drawing.Size(454, 23);
             this.tb_Sounds.TabIndex = 34;
@@ -276,7 +286,7 @@
             // 
             this.cb_PlaySound.AutoSize = true;
             this.cb_PlaySound.Location = new System.Drawing.Point(7, 123);
-            this.cb_PlaySound.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.cb_PlaySound.Margin = new System.Windows.Forms.Padding(2);
             this.cb_PlaySound.Name = "cb_PlaySound";
             this.cb_PlaySound.Size = new System.Drawing.Size(88, 19);
             this.cb_PlaySound.TabIndex = 33;
@@ -288,7 +298,7 @@
             this.tb_RunExternalProgramArgs.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.tb_RunExternalProgramArgs.Location = new System.Drawing.Point(471, 98);
-            this.tb_RunExternalProgramArgs.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.tb_RunExternalProgramArgs.Margin = new System.Windows.Forms.Padding(2);
             this.tb_RunExternalProgramArgs.Name = "tb_RunExternalProgramArgs";
             this.tb_RunExternalProgramArgs.Size = new System.Drawing.Size(180, 23);
             this.tb_RunExternalProgramArgs.TabIndex = 32;
@@ -299,7 +309,7 @@
             this.tb_RunExternalProgram.AutoCompleteMode = System.Windows.Forms.AutoCompleteMode.SuggestAppend;
             this.tb_RunExternalProgram.AutoCompleteSource = System.Windows.Forms.AutoCompleteSource.FileSystem;
             this.tb_RunExternalProgram.Location = new System.Drawing.Point(197, 98);
-            this.tb_RunExternalProgram.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.tb_RunExternalProgram.Margin = new System.Windows.Forms.Padding(2);
             this.tb_RunExternalProgram.Name = "tb_RunExternalProgram";
             this.tb_RunExternalProgram.Size = new System.Drawing.Size(211, 23);
             this.tb_RunExternalProgram.TabIndex = 31;
@@ -309,7 +319,7 @@
             // 
             this.cb_RunProgram.AutoSize = true;
             this.cb_RunProgram.Location = new System.Drawing.Point(7, 98);
-            this.cb_RunProgram.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.cb_RunProgram.Margin = new System.Windows.Forms.Padding(2);
             this.cb_RunProgram.Name = "cb_RunProgram";
             this.cb_RunProgram.Size = new System.Drawing.Size(144, 19);
             this.cb_RunProgram.TabIndex = 30;
@@ -321,7 +331,7 @@
             this.tb_network_folder.AutoCompleteMode = System.Windows.Forms.AutoCompleteMode.SuggestAppend;
             this.tb_network_folder.AutoCompleteSource = System.Windows.Forms.AutoCompleteSource.FileSystem;
             this.tb_network_folder.Location = new System.Drawing.Point(197, 72);
-            this.tb_network_folder.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.tb_network_folder.Margin = new System.Windows.Forms.Padding(2);
             this.tb_network_folder.Name = "tb_network_folder";
             this.tb_network_folder.Size = new System.Drawing.Size(211, 23);
             this.tb_network_folder.TabIndex = 28;
@@ -441,23 +451,13 @@
             // 
             this.btTest.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.btTest.Location = new System.Drawing.Point(445, 369);
-            this.btTest.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.btTest.Margin = new System.Windows.Forms.Padding(2);
             this.btTest.Name = "btTest";
             this.btTest.Size = new System.Drawing.Size(62, 30);
             this.btTest.TabIndex = 6;
             this.btTest.Text = "Test";
             this.btTest.UseVisualStyleBackColor = true;
             this.btTest.Click += new System.EventHandler(this.btTest_Click);
-            // 
-            // cb_mask_telegram
-            // 
-            this.cb_mask_telegram.AutoSize = true;
-            this.cb_mask_telegram.Location = new System.Drawing.Point(541, 22);
-            this.cb_mask_telegram.Name = "cb_mask_telegram";
-            this.cb_mask_telegram.Size = new System.Drawing.Size(105, 19);
-            this.cb_mask_telegram.TabIndex = 47;
-            this.cb_mask_telegram.Text = "Telegram Mask";
-            this.cb_mask_telegram.UseVisualStyleBackColor = true;
             // 
             // Frm_LegacyActions
             // 
@@ -472,7 +472,7 @@
             this.Controls.Add(this.btnCancel);
             this.Controls.Add(this.btnSave);
             this.Font = new System.Drawing.Font("Segoe UI", 9F);
-            this.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.Margin = new System.Windows.Forms.Padding(2);
             this.Name = "Frm_LegacyActions";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "Actions";
