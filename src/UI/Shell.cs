@@ -2698,6 +2698,7 @@ namespace AITool
                 frm.tb_cooldown.Text = cam.cooldown_time.ToString(); //load cooldown time
                 //load telegram image sending on/off option
                 frm.cb_telegram.Checked = cam.telegram_enabled;
+                frm.cb_mask_telegram.Checked = cam.telegram_mask_enabled; // Mayo Added
 
                 frm.cb_TriggerCancels.Checked = cam.trigger_url_cancels;
                 frm.cb_copyAlertImages.Checked = cam.Action_image_copy_enabled;
@@ -2710,6 +2711,7 @@ namespace AITool
                     cam.trigger_urls_as_string = string.Join(",", Global.Split(frm.tbTriggerUrl.Text.Trim(), "\r\n|;,"));
                     cam.cooldown_time = Convert.ToDouble(frm.tb_cooldown.Text.Trim());
                     cam.telegram_enabled = frm.cb_telegram.Checked;
+                    cam.telegram_mask_enabled = frm.cb_mask_telegram.Checked;  // Mayo Added
                     cam.trigger_url_cancels = frm.cb_TriggerCancels.Checked;
                     cam.Action_image_copy_enabled = frm.cb_copyAlertImages.Checked;
                     cam.Action_network_folder = frm.tb_network_folder.Text.Trim();
@@ -2739,6 +2741,7 @@ namespace AITool
                 //load telegram image sending on/off option
                 frm.cb_telegram.Checked = cam.telegram_enabled;
                 frm.tb_telegram_caption.Text = cam.telegram_caption;
+                frm.cb_mask_telegram.Checked = cam.telegram_mask_enabled;  // Mayo Added
 
                 frm.cb_TriggerCancels.Checked = cam.trigger_url_cancels;
 
@@ -2765,6 +2768,7 @@ namespace AITool
                     cam.cooldown_time = Convert.ToDouble(frm.tb_cooldown.Text.Trim());
                     cam.telegram_enabled = frm.cb_telegram.Checked;
                     cam.telegram_caption = frm.tb_telegram_caption.Text.Trim();
+                    cam.telegram_mask_enabled = frm.cb_mask_telegram.Checked;  // Mayo Added
                     cam.trigger_url_cancels = frm.cb_TriggerCancels.Checked;
 
                     cam.Action_image_copy_enabled = frm.cb_copyAlertImages.Checked;

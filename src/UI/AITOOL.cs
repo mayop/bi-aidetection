@@ -39,6 +39,8 @@ using Telegram.Bot.Exceptions;
 using SixLabors.ImageSharp.Processing;
 using System.Reflection;
 
+//End Add
+
 namespace AITool
 {
     public static class AITOOL
@@ -53,6 +55,7 @@ namespace AITool
         public static LogFileWriter LogWriter = null;
         public static LogFileWriter HistoryWriter = null;
         public static BlueIris BlueIrisInfo = null;
+        public static MayoFunctions MayoFunc = new MayoFunctions(); // Mayo Add
         //public static List<ClsURLItem> DeepStackURLList = new List<ClsURLItem>();
 
         //keep track of timing
@@ -163,6 +166,10 @@ namespace AITool
                     DirectoryInfo di = Directory.CreateDirectory("./cameras");
                     Log("./cameras/" + " dir created.");
                 }
+                
+                MayoFunc.DrectoryCheck();
+                MayoFunc.PurgeFiles("./detections/", ".jpg", 14);
+
 
                 //check if history.csv exists, if not then create it
                 if (!System.IO.File.Exists(AppSettings.Settings.HistoryFileName))
@@ -977,6 +984,11 @@ namespace AITool
                                         //if something was detected
                                         if (response.predictions.Length > 0)
                                         {
+                                            //Mayo Added
+                                            Bitmap detectedImage = new Bitmap(CurImg.image_path);
+                                            bool saveDetectedImage = false, saveTelegramImage = false;
+                                            string detectionName = "";
+                                            // End Add
 
                                             Log($"{CurSrv} - (4/6) Checking if detected object is relevant and within confidence limits:");
                                             //add all triggering_objects of the specific camera into a list and the correlating confidence levels into a second list
@@ -1019,6 +1031,17 @@ namespace AITool
                                                                 string position = $"{user.x_min},{user.y_min},{user.x_max},{user.y_max}";
                                                                 objects_position.Add(position);
                                                                 Log($"{CurSrv} -    {{orange}}{ user.label.ToString()} ({ Math.Round((user.confidence * 100), 2).ToString() }%) confirmed.");
+
+                                                                // Mayo Added
+                                                                detectionName = user.label.ToString() + " (" + Math.Round((user.confidence * 100), 2).ToString() + "%)";
+                                                                MayoFunc.DrawObjectBoxes(ref detectedImage, user.label.ToString(), user.x_min, user.y_min, user.x_max, user.y_max, detectionName);
+                                                                saveDetectedImage = true;
+
+                                                                if (cam.telegram_mask_enabled && MayoFunc.TelegramOutsideMask(cam.name, user.x_min, user.x_max, user.y_min, user.y_max, img.Width, img.Height))
+                                                                {
+                                                                    saveTelegramImage = true;
+                                                                }
+                                                                // End Add
                                                             }
                                                             else //if the object is in a masked area
                                                             {
@@ -1031,6 +1054,11 @@ namespace AITool
                                                             threshold_counter++;
                                                             irrelevant_object = true;
                                                         }
+
+                                                        // Mayo Added    
+                                                        if (saveDetectedImage) { MayoFunc.SaveDetectedImage(detectedImage, cam.prefix, "_obj", CurImg.image_path); }
+                                                        if (saveTelegramImage) { MayoFunc.SaveDetectedImage(detectedImage, cam.prefix, "_telegram", CurImg.image_path); }
+                                                        // End Add
                                                     }
                                                     else //if object is not relevant
                                                     {
@@ -1559,6 +1587,22 @@ namespace AITool
 
                         CallTriggerURLs(urls);
                     }
+
+                    // Mayo Add
+                    if (cam.telegram_mask_enabled)
+                    {
+                        if ((DateTime.Now - cam.last_trigger_time).TotalMinutes >= AppSettings.Settings.telegram_cooldown_minutes)
+                        {
+                            string pictureFile = "detections\\" + cam.prefix.ToLower() + "\\" + Path.GetFileName(CurImg.image_path).Insert((Path.GetFileName(CurImg.image_path).Length - 4), "_telegram");
+                            if (System.IO.File.Exists(pictureFile))
+                            {
+                                string tmp = AITOOL.ReplaceParams(cam, CurImg, cam.telegram_caption);
+                                await MayoFunc.TelegramUploadLegacy(pictureFile, tmp);
+                                File.Delete(pictureFile);
+                            }
+                        }
+                    }
+                    // End Add
 
                     if (!cam.trigger_url_cancels)
                     {
