@@ -39,6 +39,8 @@ using Telegram.Bot.Exceptions;
 using SixLabors.ImageSharp.Processing;
 using System.Reflection;
 
+// Mayo Added
+using File = System.IO.File;
 //End Add
 
 namespace AITool
@@ -1596,8 +1598,8 @@ namespace AITool
                             string pictureFile = "detections\\" + cam.prefix.ToLower() + "\\" + Path.GetFileName(CurImg.image_path).Insert((Path.GetFileName(CurImg.image_path).Length - 4), "_telegram");
                             if (System.IO.File.Exists(pictureFile))
                             {
-                                string tmp = AITOOL.ReplaceParams(cam, CurImg, cam.telegram_caption);
-                                await MayoFunc.TelegramUploadLegacy(pictureFile, tmp);
+                                string img_caption = AITOOL.ReplaceParams(cam, CurImg, cam.telegram_caption);
+                                await MayoFunc.TelegramUploadLegacy(pictureFile, img_caption);
                                 File.Delete(pictureFile);
                             }
                         }

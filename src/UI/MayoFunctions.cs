@@ -1,28 +1,14 @@
 ﻿using System;
 using System.Linq;
-using System.Text;
 using System.IO;
-using System.Net;
 using System.Drawing;
-using System.Drawing.Imaging;
 using System.Drawing.Drawing2D;
 using System.Diagnostics;
 
 using Telegram.Bot;
-using Telegram.Bot.Args;
-using Telegram.Bot.Types;
-using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.InputFiles;
 
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Media;
-using System.Net.Http;
-using System.Text.RegularExpressions;
-using System.Threading;
 using System.Threading.Tasks;
-using MQTTnet.Client.Publishing;
-using Newtonsoft.Json;
 
 using File = System.IO.File;
 
@@ -187,11 +173,11 @@ namespace AITool
         {
             foreach (string file in Directory.GetFiles(directory,"*", SearchOption.AllDirectories))
             {                
-                FileInfo fi = new FileInfo(file);
+                FileInfo fileInfo = new FileInfo(file);
 
-                if (fi.Extension == extension && fi.LastWriteTime < DateTime.Now.AddDays(0 - days))
+                if (fileInfo.Extension == extension && fileInfo.LastWriteTime < DateTime.Now.AddDays(0 - days))
                 {
-                    fi.Delete();                    
+                    fileInfo.Delete();                    
                 }                           
             }
         }
@@ -201,8 +187,7 @@ namespace AITool
         {
             if (AppSettings.Settings.telegram_chatids.Count > 0 && AppSettings.Settings.telegram_token != "" && File.Exists(image_path))
             {
-                //telegram upload sometimes fails
-                Stopwatch sw = Stopwatch.StartNew();
+                //telegram upload sometimes fails               
                 try
                 {
                     using (var image_telegram = System.IO.File.OpenRead(image_path))
@@ -245,11 +230,11 @@ namespace AITool
                         //if any coordinates of the object are outside of the mask image, th mask image must be too small.
                         if (mask_img.Width != width || mask_img.Height != height)
                         {
-                            Log($"ERROR: The resolution of the mask '{strMaskFile}' does not equal the resolution of the processed image. Skipping privacy mask feature. Image: {width}x{height}, Mask: {mask_img.Width}x{mask_img.Height}");
+                            Log($"ERROR: The resolution of the telegram mask '{strMaskFile}' does not equal the resolution of the processed image. Skipping privacy mask feature. Image: {width}x{height}, Mask: {mask_img.Width}x{mask_img.Height}");
                             return true;
                         }
 
-                        Log("         Checking if the object is in a masked area...");
+                        Log("         Checking if the object is in a telegram masked area...");
 
                         //relative x and y locations of the 9 detection points
                         double[] x_factor = new double[] { 0.25, 0.5, 0.75, 0.25, 0.5, 0.75, 0.25, 0.5, 0.75 };
@@ -274,16 +259,16 @@ namespace AITool
                             }
                         }
 
-                        Log($"         { result.ToString() } of 9 detection points are outside of masked areas."); //print how many of the 9 detection points are outside of masked areas.
+                        Log($"         { result.ToString() } of 9 detection points are outside of telegram masked areas."); //print how many of the 9 detection points are outside of masked areas.
 
                         if (result > 4) //if 5 or more of the 9 detection points are outside of masked areas, the majority of the object is outside of masked area(s)
                         {
-                            Log("      ->The object is OUTSIDE of masked area(s).");
+                            Log("      ->The object is OUTSIDE of telegram masked area(s).");
                             return true;
                         }
                         else //if 4 or less of 9 detection points are outside, then 5 or more points are in masked areas and the majority of the object is so too
                         {
-                            Log("      ->The object is INSIDE a masked area.");
+                            Log("      ->The object is INSIDE a telegram masked area.");
                             return false;
                         }
 
@@ -291,22 +276,23 @@ namespace AITool
                 }
                 else //if mask image does not exist, object is outside the non-existing masked area
                 {
-                    Log("     ->Camera has no mask, the object is OUTSIDE of the masked area.");
+                    Log("     ->Camera has no telegram mask or camera image size differs from mask.");
                     return true;
                 }
 
             }
             catch
             {
-                Log($"ERROR while loading the mask file ./cameras/{cameraname}.png.");
+                Log($"ERROR while loading the telegram mask file {strMaskFile}.");
                 return true;
             }
 
         }
+        // ************************************************************************
 
-        public void Log(string message)
+        public void Log(string strMessage)
         {
-
+            Global.Log(strMessage);
         }
 
         // ************************************************************************
@@ -314,19 +300,16 @@ namespace AITool
          * public void StartTelegramListener(string access_token)
         {
             botClient = new TelegramBotClient(access_token);
-
             var me = botClient.GetMeAsync().Result;
             botClient.OnMessage += TelegramBot_OnMessage;
             botClient.StartReceiving();
-
             //botClient.StopReceiving();
         }
         // ************************************************************************
         public static async void TelegramBot_OnMessage(object sender, MessageEventArgs e)
         {
             if (e.Message.Text != null)
-            {              
-
+            { 
                 //if (e.Message.Text == "quit") {  }
                 await botClient.SendTextMessageAsync( chatId: e.Message.Chat, text: "You said:\n" + e.Message.Text  );
             }
