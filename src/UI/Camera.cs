@@ -44,12 +44,9 @@ namespace AITool
         //public List<CameraTriggerAction> trigger_action_list = new List<CameraTriggerAction>();
         public bool trigger_url_cancels = false;
         public bool telegram_enabled = false;
-<<<<<<< HEAD
         public string telegram_caption = "[camera] - [summary]";  //cam.name + " - " + cam.last_detections_summary
         public bool telegram_mask_enabled = false; // Mayo Added
-=======
         public string telegram_caption = "[camera] - [SummaryNonEscaped]";  //cam.name + " - " + cam.last_detections_summary
->>>>>>> upstream/master
         public bool enabled = true;
         public double cooldown_time = 0;
         public int threshold_lower = 0;

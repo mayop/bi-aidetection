@@ -1085,7 +1085,6 @@ namespace AITool
                                                                 objects_confidence.Add(user.confidence);
                                                                 string position = $"{user.x_min},{user.y_min},{user.x_max},{user.y_max}";
                                                                 objects_position.Add(position);
-<<<<<<< HEAD
                                                                 Log($"{CurSrv} -    {{orange}}{ user.label.ToString()} ({ Math.Round((user.confidence * 100), 2).ToString() }%) confirmed.");
 
                                                                 // Mayo Added
@@ -1098,9 +1097,7 @@ namespace AITool
                                                                     saveTelegramImage = true;
                                                                 }
                                                                 // End Add
-=======
                                                                 Log($"{CurSrv} -    {{orange}}{ user.label} {String.Format(AppSettings.Settings.DisplayPercentageFormat, user.confidence * 100)} confirmed.");
->>>>>>> upstream/master
                                                             }
                                                             else //if the object is in a masked area
                                                             {
