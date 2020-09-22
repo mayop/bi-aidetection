@@ -55,6 +55,95 @@ namespace AITool
             }
         }
 
+        public void DrawObjectBoxesNew(Camera cam, ClsImageQueueItem CurImg = null)
+        {
+            string InputImageFile = "";
+
+            if (CurImg == null)
+            {
+                InputImageFile = cam.last_image_file_with_detections;
+            }
+            else
+            {
+                InputImageFile = CurImg.image_path;
+            }
+
+            if (File.Exists(InputImageFile))
+            {
+
+
+                using (Bitmap img = new Bitmap(InputImageFile))
+                {
+
+                    using (Graphics gfxImage = Graphics.FromImage(img))
+                    {
+                        System.Drawing.Rectangle rect;
+                        System.Drawing.SizeF size;
+                        Brush rectBrush;
+
+                        //get dimensions of the image and the picturebox
+                        float imgWidth = img.Width;
+                        float imgHeight = img.Height;
+                        float boxWidth = img.Width; // pictureBox1.Width;
+                        float boxHeight = img.Height;  //pictureBox1.Height;
+
+                        //these variables store the padding between image border and picturebox border
+                        int absX = 0;
+                        int absY = 0;
+
+                        //because the sizemode of the picturebox is set to 'zoom', the image is scaled down
+                        float scale = 1;
+
+                        //Comparing the aspect ratio of both the control and the image itself.
+                        if (imgWidth / imgHeight > boxWidth / boxHeight) //if the image is p.e. 16:9 and the picturebox is 4:3
+                        {
+                            scale = boxWidth / imgWidth; //get scale factor
+                            absY = (int)(boxHeight - scale * imgHeight) / 2; //padding on top and below the image
+                        }
+                        else //if the image is p.e. 4:3 and the picturebox is widescreen 16:9
+                        {
+                            scale = boxHeight / imgHeight; //get scale factor
+                            absX = (int)(boxWidth - scale * imgWidth) / 2; //padding left and right of the image
+                        }
+
+                        //2. inputted position values are for the original image size. As the image is probably smaller in the picturebox, the positions must be adapted. 
+                        int xmin = (int)(scale * _xmin) + absX;
+                        int xmax = (int)(scale * _xmax) + absX;
+                        int ymin = (int)(scale * _ymin) + absY;
+                        int ymax = (int)(scale * _ymax) + absY;
+
+                        int penSize = 2;
+                        if (img.Height > 1200) { penSize = 4; }
+                        else if (img.Height >= 800 && img.Height <= 1200) { penSize = 3; }
+
+
+                        //3. paint rectangle                
+                        Color boxColor = Color.FromArgb(150, this.GetBoxColor(objectType));
+                        rect = new System.Drawing.Rectangle(xmin, ymin, xmax - xmin, ymax - ymin);
+                        using (Pen pen = new Pen(boxColor, penSize)) { gfxImage.DrawRectangle(pen, rect); } //draw rectangle
+
+                        // Text Color       
+                        Brush textColor = (boxColor.GetBrightness() > 0.5 ? Brushes.Black : Brushes.White);
+
+                        float fontSize = 12 * ((float)img.Height / 1080); // Scale for image sizes
+                        if (fontSize < 8) { fontSize = 8; }
+                        Font textFont = new Font(FontFamily.GenericSansSerif, fontSize, FontStyle.Regular);
+
+                        //object name text below rectangle
+                        rect = new System.Drawing.Rectangle(xmin - 1, ymax, (int)boxWidth, (int)boxHeight); //sets bounding box for drawn text
+                        rectBrush = new SolidBrush(boxColor); //sets background rectangle color
+
+                        gfxImage.SmoothingMode = SmoothingMode.HighQuality;
+                        gfxImage.CompositingQuality = CompositingQuality.HighQuality;
+
+                        size = gfxImage.MeasureString(text, textFont); //finds size of text to draw the background rectangle
+                        gfxImage.FillRectangle(rectBrush, xmin - 1, ymax, size.Width, size.Height); //draw background rectangle for detection text
+                        gfxImage.DrawString(text, textFont, textColor, rect); //draw detection text
+                    }
+                }
+            }
+        }
+
         // ************************************************************************
         public void DrawObjectBoxes(ref Bitmap img, string objectType, int _xmin, int _ymin, int _xmax, int _ymax, string text)
         {

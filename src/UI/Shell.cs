@@ -2769,7 +2769,6 @@ namespace AITool
                     cam.cooldown_time = Convert.ToDouble(frm.tb_cooldown.Text.Trim());
                     cam.telegram_enabled = frm.cb_telegram.Checked;
                     cam.telegram_mask_enabled = frm.cb_mask_telegram.Checked;  // Mayo Added
-                    cam.trigger_url_cancels = frm.cb_TriggerCancels.Checked;
                     cam.Action_image_copy_enabled = frm.cb_copyAlertImages.Checked;
                     cam.Action_network_folder = frm.tb_network_folder.Text.Trim();
                     cam.Action_network_folder_filename = frm.tb_network_folder_filename.Text;
@@ -2798,7 +2797,7 @@ namespace AITool
                 //load telegram image sending on/off option
                 frm.cb_telegram.Checked = cam.telegram_enabled;
                 frm.tb_telegram_caption.Text = cam.telegram_caption;
-                frm.cb_mask_telegram.Checked = cam.telegram_mask_enabled;  // Mayo Added
+                frm.cb_mask_telegram.Checked = cam.telegram_mask_enabled; // Mayo Added
 
 
                 frm.cb_copyAlertImages.Checked = cam.Action_image_copy_enabled;
@@ -2829,7 +2828,6 @@ namespace AITool
                     cam.telegram_enabled = frm.cb_telegram.Checked;
                     cam.telegram_caption = frm.tb_telegram_caption.Text.Trim();
                     cam.telegram_mask_enabled = frm.cb_mask_telegram.Checked;  // Mayo Added
-                    cam.trigger_url_cancels = frm.cb_TriggerCancels.Checked;
 
                     cam.Action_image_copy_enabled = frm.cb_copyAlertImages.Checked;
                     cam.Action_network_folder = frm.tb_network_folder.Text.Trim();
