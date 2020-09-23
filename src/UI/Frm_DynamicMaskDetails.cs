@@ -170,8 +170,8 @@ namespace AITool
         {
             loading = true;
 
-            Global_GUI.ConfigureFOLV(ref FOLV_MaskHistory, typeof(ObjectPosition), null, null, "createDate", SortOrder.Descending);
-            Global_GUI.ConfigureFOLV(ref FOLV_Masks, typeof(ObjectPosition), null, null, "createDate", SortOrder.Descending);
+            Global_GUI.ConfigureFOLV(FOLV_MaskHistory, typeof(ObjectPosition), null, null, "createDate", SortOrder.Descending);
+            Global_GUI.ConfigureFOLV(FOLV_Masks, typeof(ObjectPosition), null, null, "createDate", SortOrder.Descending);
 
             Global_GUI.RestoreWindowState(this);
 
@@ -227,8 +227,8 @@ namespace AITool
                 masked = cam.maskManager.masked_positions;
             }
 
-            Global_GUI.UpdateFOLV(ref FOLV_MaskHistory, hist, true);
-            Global_GUI.UpdateFOLV(ref FOLV_Masks, masked, true);
+            Global_GUI.UpdateFOLV(FOLV_MaskHistory, hist, true);
+            Global_GUI.UpdateFOLV(FOLV_Masks, masked, true);
             this.CurObjPosLst.Clear();
             ShowMaskImage();
             ShowImageMask(null);
@@ -393,9 +393,9 @@ namespace AITool
 
                             Brush brush = new SolidBrush(color); //sets background rectangle color
 
-                            System.Drawing.SizeF size = e.Graphics.MeasureString(op.label, new Font("Segoe UI Semibold", AppSettings.Settings.RectDetectionTextSize)); //finds size of text to draw the background rectangle
+                            System.Drawing.SizeF size = e.Graphics.MeasureString(op.label, new Font(AppSettings.Settings.RectDetectionTextFont, AppSettings.Settings.RectDetectionTextSize)); //finds size of text to draw the background rectangle
                             e.Graphics.FillRectangle(brush, xmin - 1, ymax, size.Width, size.Height); //draw grey background rectangle for detection text
-                            e.Graphics.DrawString(op.label, new Font("Segoe UI Semibold", AppSettings.Settings.RectDetectionTextSize), Brushes.Black, rect); //draw detection text
+                            e.Graphics.DrawString(op.label, new Font(AppSettings.Settings.RectDetectionTextFont, AppSettings.Settings.RectDetectionTextSize), Brushes.Black, rect); //draw detection text
                         }
                         else
                         {

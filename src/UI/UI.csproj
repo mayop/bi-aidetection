@@ -8,7 +8,7 @@
     <OutputType>WinExe</OutputType>
     <RootNamespace>AITool</RootNamespace>
     <AssemblyName>AITool</AssemblyName>
-    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <Deterministic>false</Deterministic>
@@ -30,6 +30,7 @@
     <BootstrapperEnabled>true</BootstrapperEnabled>
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -66,6 +67,9 @@
   </PropertyGroup>
   <PropertyGroup>
     <SignManifests>false</SignManifests>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="M2Mqtt.Net, Version=4.3.0.0, Culture=neutral, processorArchitecture=MSIL">
@@ -182,6 +186,10 @@
       <HintPath>..\packages\System.Memory.4.5.4\lib\net461\System.Memory.dll</HintPath>
       <SpecificVersion>False</SpecificVersion>
     </Reference>
+    <Reference Include="System.Net.Http, Version=4.2.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="System.Net.Security, Version=4.0.2.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Net.Security.4.3.2\lib\net46\System.Net.Security.dll</HintPath>
       <SpecificVersion>False</SpecificVersion>
@@ -240,7 +248,6 @@
     <Reference Include="System.Data" />
     <Reference Include="System.Deployment" />
     <Reference Include="System.Drawing" />
-    <Reference Include="System.Net.Http" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
     <Reference Include="Telegram.Bot, Version=15.7.1.0, Culture=neutral, processorArchitecture=MSIL">
@@ -295,6 +302,17 @@
     </Compile>
     <Compile Include="Global-GUI.cs" />
     <Compile Include="MayoFunctions.cs" />
+    <Compile Include="OSVersionExt\EnvironmentProvider.cs" />
+    <Compile Include="OSVersionExt\IEnvironment.cs" />
+    <Compile Include="OSVersionExt\IRegistry.cs" />
+    <Compile Include="OSVersionExt\IWin32API.cs" />
+    <Compile Include="OSVersionExt\MajorVersion10Properties.cs" />
+    <Compile Include="OSVersionExt\OSVersion.cs" />
+    <Compile Include="OSVersionExt\RegistryProviderDefault.cs" />
+    <Compile Include="OSVersionExt\SystemMetrics.cs" />
+    <Compile Include="OSVersionExt\VersionInfo.cs" />
+    <Compile Include="OSVersionExt\Win32ApiEnums.cs" />
+    <Compile Include="OSVersionExt\Win32ApiProvider.cs" />
     <Compile Include="SQLiteHistory.cs" />
     <Compile Include="LogFileWriter.cs" />
     <Compile Include="MaskManager.cs" />
@@ -354,6 +372,7 @@
     <None Include="..\.editorconfig">
       <Link>.editorconfig</Link>
     </None>
+    <None Include="app.manifest" />
     <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>

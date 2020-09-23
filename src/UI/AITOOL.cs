@@ -38,6 +38,7 @@ using Arch.CMessaging.Client.Core.Utils;
 using Telegram.Bot.Exceptions;
 using SixLabors.ImageSharp.Processing;
 using System.Reflection;
+using OSVersionExtension;
 
 // Mayo Added
 using File = System.IO.File;
@@ -120,12 +121,31 @@ namespace AITool
                 string AssemNam = CurAssm.GetName().Name;
                 string AssemVer = CurAssm.GetName().Version.ToString();
 
+                
+                Log("");
                 Log("");
                 Log("");
                 Log($"Starting {AssemNam} Version {AssemVer} built on {Global.RetrieveLinkerTimestamp()}");
+
+                try  //just in case some weird issue comes up with older os version...
+                {
+                    OSVersionExt.VersionInfo vi = OSVersion.GetOSVersion();
+                    OSVersionExtension.OperatingSystem ov = OSVersion.GetOperatingSystem();
+
+                    Log($"   Installed NET Framework version '{Global.GetFrameworkVersion()}', Target version '{AppDomain.CurrentDomain.SetupInformation.TargetFrameworkName}'");
+                    Log($"   Windows '{ov.ToString()}', version '{vi.Version.ToString()}' Release ID '{OSVersion.MajorVersion10Properties().ReleaseId}', 64Bit={OSVersion.Is64BitOperatingSystem}, Workstation={OSVersion.IsWorkstation}, Server={OSVersion.IsServer}");
+
+                }
+                catch (Exception ex)
+                {
+
+                    Log("Error: Problem getting OS version info: " + Global.ExMsg(ex));
+                }
+
+
                 if (AppSettings.AlreadyRunning)
                 {
-                    Log("*** Another instance is already running *** ");
+                    Log("*** Warning: Another instance is already running *** ");
                     Log(" --- Files will not be monitored from within this session ");
                     Log(" --- Log tab will not display output from service instance. You will need to directly open log file for that ");
                     Log(" --- Changes made here to settings will require that you stop/start the service ");
@@ -140,14 +160,24 @@ namespace AITool
                     Log("Not running as administrator.");
                 }
 
-                if (AppSettings.Settings.SettingsFileName.ToLower().StartsWith(Directory.GetCurrentDirectory().ToLower()))
+                if (AppDomain.CurrentDomain.BaseDirectory.ToLower() == Directory.GetCurrentDirectory().ToLower())
                 {
                     Log($"*** Start in/current directory is the same as where the EXE is running from: {Directory.GetCurrentDirectory()} ***");
                 }
                 else
                 {
-                    string msg = $"Error: The Start in/current directory is NOT the same as where the EXE is running from: \r\n{Directory.GetCurrentDirectory()}\r\n{AppDomain.CurrentDomain.BaseDirectory}";
-                    Log(msg);
+                    try
+                    {
+                        Log($"*** Changing Start in/current directory from '{Directory.GetCurrentDirectory()}' to '{AppDomain.CurrentDomain.BaseDirectory}' ***");
+                        Directory.SetCurrentDirectory(AppDomain.CurrentDomain.BaseDirectory);
+                    }
+                    catch (Exception ex)
+                    {
+
+                        string msg = $"Error: The Start in/current directory is NOT the same as where the EXE is running from: \r\n{Directory.GetCurrentDirectory()}\r\n{AppDomain.CurrentDomain.BaseDirectory}";
+                        Log(msg);
+                        Log($"...this may prevent DLL files from loading from the wrong folder.  '{ex.Message}'");
+                    }
                 }
 
                 //initialize blueiris info class to get camera names, clip paths, etc
@@ -340,7 +370,10 @@ namespace AITool
                     }
 
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    Log("Error getting next URL: " + ex.ToString());
+                }
 
                 if (ret != null)
                 {
