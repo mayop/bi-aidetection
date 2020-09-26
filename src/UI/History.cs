@@ -23,15 +23,16 @@ namespace AITool
         [Indexed]
         public string Camera { get; set; } = "";
         public bool Success { get; set; } = false;
+        public string Detections { get; set; } = "";
         public bool IsPerson { get; set; } = false;
         public bool IsVehicle { get; set; } = false;
         public bool IsAnimal { get; set; } = false;
         public bool WasMasked { get; set; } = false;
+        public bool WasSkipped { get; set; } = false;
         public bool IsFace { get; set; } = false;
         public bool IsKnownFace { get; set; } = false;
         [PrimaryKey, Indexed]
         public string Filename { get; set; } = "";
-        public string Detections { get; set; } = "";
         public string Positions { get; set; } = "";
 
 
@@ -118,7 +119,7 @@ namespace AITool
             this.Success = Success; //this.Detections.Contains("%") && !this.Detections.Contains(':');
 
             this.GetObjects();
-
+            
             return this;
         }
         private void GetObjects()
@@ -136,7 +137,7 @@ namespace AITool
             //toilet,   tv,   laptop,   mouse,   remote,   keyboard,   cell phone,   microwave,
             //oven,   toaster,   sink,   refrigerator,   book,   clock,   vase,   scissors,   teddy bear,
             //hair dryer, toothbrush.
-
+            
 
             this.IsPerson = tmp.Contains("person");
 
@@ -161,6 +162,8 @@ namespace AITool
                             tmp.Contains("giraffe");
 
             this.WasMasked = tmp.Contains("mask");
+
+            this.WasSkipped = tmp.Contains("skipped");
         }
 
     }
