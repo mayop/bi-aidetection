@@ -67,6 +67,7 @@
             this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
             this.label3 = new System.Windows.Forms.Label();
             this.btTest = new System.Windows.Forms.Button();
+            this.cb_mask_telegram = new System.Windows.Forms.CheckBox();
             this.groupBox1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -75,8 +76,8 @@
             this.btnCancel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.btnCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             this.btnCancel.Font = new System.Drawing.Font("Segoe UI", 9F);
-            this.btnCancel.Location = new System.Drawing.Point(1135, 729);
-            this.btnCancel.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.btnCancel.Location = new System.Drawing.Point(649, 417);
+            this.btnCancel.Margin = new System.Windows.Forms.Padding(2, 3, 2, 3);
             this.btnCancel.Name = "btnCancel";
             this.btnCancel.Size = new System.Drawing.Size(62, 30);
             this.btnCancel.TabIndex = 3;
@@ -88,8 +89,8 @@
             // 
             this.btnSave.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.btnSave.Font = new System.Drawing.Font("Segoe UI", 9F);
-            this.btnSave.Location = new System.Drawing.Point(994, 729);
-            this.btnSave.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.btnSave.Location = new System.Drawing.Point(568, 417);
+            this.btnSave.Margin = new System.Windows.Forms.Padding(2, 3, 2, 3);
             this.btnSave.Name = "btnSave";
             this.btnSave.Size = new System.Drawing.Size(62, 30);
             this.btnSave.TabIndex = 2;
@@ -223,9 +224,10 @@
             // 
             this.label10.AutoSize = true;
             this.label10.ForeColor = System.Drawing.Color.DarkRed;
-            this.label10.Location = new System.Drawing.Point(786, 300);
+            this.label10.Location = new System.Drawing.Point(449, 171);
+            this.label10.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.label10.Name = "label10";
-            this.label10.Size = new System.Drawing.Size(90, 30);
+            this.label10.Size = new System.Drawing.Size(52, 15);
             this.label10.TabIndex = 39;
             this.label10.Text = "Payload:";
             // 
@@ -243,9 +245,10 @@
             // 
             this.tb_MQTT_Payload_cancel.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.tb_MQTT_Payload_cancel.Location = new System.Drawing.Point(882, 299);
+            this.tb_MQTT_Payload_cancel.Location = new System.Drawing.Point(504, 171);
+            this.tb_MQTT_Payload_cancel.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.tb_MQTT_Payload_cancel.Name = "tb_MQTT_Payload_cancel";
-            this.tb_MQTT_Payload_cancel.Size = new System.Drawing.Size(329, 35);
+            this.tb_MQTT_Payload_cancel.Size = new System.Drawing.Size(190, 23);
             this.tb_MQTT_Payload_cancel.TabIndex = 38;
             // 
             // tb_MQTT_Payload
@@ -260,18 +263,20 @@
             // 
             // tb_MQTT_Topic_Cancel
             // 
-            this.tb_MQTT_Topic_Cancel.Location = new System.Drawing.Point(436, 299);
+            this.tb_MQTT_Topic_Cancel.Location = new System.Drawing.Point(249, 171);
+            this.tb_MQTT_Topic_Cancel.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.tb_MQTT_Topic_Cancel.Name = "tb_MQTT_Topic_Cancel";
-            this.tb_MQTT_Topic_Cancel.Size = new System.Drawing.Size(328, 35);
+            this.tb_MQTT_Topic_Cancel.Size = new System.Drawing.Size(189, 23);
             this.tb_MQTT_Topic_Cancel.TabIndex = 37;
             // 
             // label9
             // 
             this.label9.AutoSize = true;
             this.label9.ForeColor = System.Drawing.Color.DarkRed;
-            this.label9.Location = new System.Drawing.Point(296, 300);
+            this.label9.Location = new System.Drawing.Point(169, 171);
+            this.label9.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.label9.Name = "label9";
-            this.label9.Size = new System.Drawing.Size(134, 30);
+            this.label9.Size = new System.Drawing.Size(77, 15);
             this.label9.TabIndex = 36;
             this.label9.Text = "Cancel Topic:";
             // 
@@ -388,11 +393,11 @@
             this.tbCancelUrl.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.tbCancelUrl.Font = new System.Drawing.Font("Consolas", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.tbCancelUrl.Location = new System.Drawing.Point(13, 478);
-            this.tbCancelUrl.Margin = new System.Windows.Forms.Padding(10, 6, 10, 6);
+            this.tbCancelUrl.Location = new System.Drawing.Point(7, 273);
+            this.tbCancelUrl.Margin = new System.Windows.Forms.Padding(6, 3, 6, 3);
             this.tbCancelUrl.Multiline = true;
             this.tbCancelUrl.Name = "tbCancelUrl";
-            this.tbCancelUrl.Size = new System.Drawing.Size(1198, 79);
+            this.tbCancelUrl.Size = new System.Drawing.Size(686, 47);
             this.tbCancelUrl.TabIndex = 22;
             this.toolTip1.SetToolTip(this.tbCancelUrl, "URLs that cancel the alert - For BI, use ");
             // 
@@ -416,11 +421,11 @@
             this.label11.AutoSize = true;
             this.label11.Font = new System.Drawing.Font("Segoe UI", 9F);
             this.label11.ForeColor = System.Drawing.Color.DarkRed;
-            this.label11.Location = new System.Drawing.Point(8, 449);
-            this.label11.Margin = new System.Windows.Forms.Padding(35, 0, 5, 0);
-            this.label11.MinimumSize = new System.Drawing.Size(158, 0);
+            this.label11.Location = new System.Drawing.Point(5, 257);
+            this.label11.Margin = new System.Windows.Forms.Padding(20, 0, 3, 0);
+            this.label11.MinimumSize = new System.Drawing.Size(90, 0);
             this.label11.Name = "label11";
-            this.label11.Size = new System.Drawing.Size(158, 30);
+            this.label11.Size = new System.Drawing.Size(90, 15);
             this.label11.TabIndex = 1;
             this.label11.Text = "Cancel URL(s):";
             // 
@@ -497,7 +502,8 @@
             // btTest
             // 
             this.btTest.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.btTest.Location = new System.Drawing.Point(853, 729);
+            this.btTest.Location = new System.Drawing.Point(487, 417);
+            this.btTest.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.btTest.Name = "btTest";
             this.btTest.Size = new System.Drawing.Size(62, 30);
             this.btTest.TabIndex = 6;
@@ -505,13 +511,24 @@
             this.btTest.UseVisualStyleBackColor = true;
             this.btTest.Click += new System.EventHandler(this.btTest_Click);
             // 
+            // cb_mask_telegram
+            // 
+            this.cb_mask_telegram.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.cb_mask_telegram.AutoSize = true;
+            this.cb_mask_telegram.Location = new System.Drawing.Point(588, 18);
+            this.cb_mask_telegram.Name = "cb_mask_telegram";
+            this.cb_mask_telegram.Size = new System.Drawing.Size(105, 19);
+            this.cb_mask_telegram.TabIndex = 47;
+            this.cb_mask_telegram.Text = "Telegram Mask";
+            this.cb_mask_telegram.UseVisualStyleBackColor = true;
+            // 
             // Frm_LegacyActions
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(96F, 96F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi;
             this.BackColor = System.Drawing.Color.WhiteSmoke;
             this.CancelButton = this.btnCancel;
-            this.ClientSize = new System.Drawing.Size(1257, 795);
+            this.ClientSize = new System.Drawing.Size(718, 454);
             this.Controls.Add(this.btTest);
             this.Controls.Add(this.label3);
             this.Controls.Add(this.groupBox1);

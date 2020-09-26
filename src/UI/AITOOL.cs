@@ -41,10 +41,6 @@ using System.Reflection;
 using OSVersionExtension;
 using System.Runtime.CompilerServices;
 
-// Mayo Added
-using File = System.IO.File;
-//End Add
-
 namespace AITool
 {
     public static class AITOOL
@@ -59,8 +55,9 @@ namespace AITool
         public static LogFileWriter LogWriter = null;
         //public static LogFileWriter HistoryWriter = null;
         public static BlueIris BlueIrisInfo = null;
-        public static MayoFunctions MayoFunc = new MayoFunctions(); // Mayo Add
         //public static List<ClsURLItem> DeepStackURLList = new List<ClsURLItem>();
+
+        public static MayoFunctions MayoFunc = new MayoFunctions(); // Mayo Add
 
         //keep track of timing
         //moving average will be faster for long running process with 1000's of samples
@@ -206,21 +203,15 @@ namespace AITool
                     Log("./cameras/" + " dir created.");
                 }
                 
+                // Mayo Add 
                 MayoFunc.DrectoryCheck();
                 MayoFunc.PurgeFiles("./detections/", ".jpg", 14);
 
                 if (AppSettings.Settings.telegram_token != "")
                 {
-                    MayoFunc.StartTelegramListener(AppSettings.Settings.telegram_token);
-                }                
-
-                //check if history.csv exists, if not then create it
-                if (!System.IO.File.Exists(AppSettings.Settings.HistoryFileName))
-                {
-                    Log("ATTENTION: Creating database cameras/history.csv .");
-                    HistoryWriter.WriteToLog("filename|date and time|camera|detections|positions of detections|success", true);
-                }
-                               
+                    //MayoFunc.StartTelegramListener(AppSettings.Settings.telegram_token);
+                }       
+                // End Add
 
                 //initialize the deepstack class - it collects info from running deepstack processes, detects install location, and
                 //allows for stopping and starting of its service
@@ -1093,12 +1084,7 @@ namespace AITool
 
                                         //if something was detected
                                         if (response.predictions.Length > 0)
-                                        {
-                                            //Mayo Added
-                                            Bitmap detectedImage = new Bitmap(CurImg.image_path);
-                                            bool saveDetectedImage = false, saveTelegramImage = false;
-                                            string detectionName = "";
-                                            // End Add
+                                        {                            
 
                                             Log($"{CurSrv} - (4/6) Checking if detected object is relevant and within confidence limits:");
                                             //add all triggering_objects of the specific camera into a list and the correlating confidence levels into a second list
@@ -1140,18 +1126,6 @@ namespace AITool
                                                                 objects_confidence.Add(user.confidence);
                                                                 string position = $"{user.x_min},{user.y_min},{user.x_max},{user.y_max}";
                                                                 objects_position.Add(position);
-                                                                Log($"{CurSrv} -    {{orange}}{ user.label.ToString()} ({ Math.Round((user.confidence * 100), 2).ToString() }%) confirmed.");
-
-                                                                // Mayo Added
-                                                                detectionName = user.label.ToString() + " (" + Math.Round((user.confidence * 100), 2).ToString() + "%)";
-                                                                MayoFunc.DrawObjectBoxes(ref detectedImage, user.label.ToString(), user.x_min, user.y_min, user.x_max, user.y_max, detectionName);
-                                                                saveDetectedImage = true;
-
-                                                                if (cam.telegram_mask_enabled && MayoFunc.TelegramOutsideMask(cam.name, user.x_min, user.x_max, user.y_min, user.y_max, img.Width, img.Height))
-                                                                {
-                                                                    saveTelegramImage = true;
-                                                                }
-                                                                // End Add
                                                                 Log($"{CurSrv} -    {{orange}}{ user.label} {String.Format(AppSettings.Settings.DisplayPercentageFormat, user.confidence * 100)} confirmed.");
                                                             }
                                                             else //if the object is in a masked area
@@ -1165,11 +1139,6 @@ namespace AITool
                                                             threshold_counter++;
                                                             irrelevant_object = true;
                                                         }
-
-                                                        // Mayo Added    
-                                                        if (saveDetectedImage) { MayoFunc.SaveDetectedImage(detectedImage, cam.prefix, "_obj", CurImg.image_path); }
-                                                        if (saveTelegramImage) { MayoFunc.SaveDetectedImage(detectedImage, cam.prefix, "_telegram", CurImg.image_path); }
-                                                        // End Add
                                                     }
                                                     else //if object is not relevant
                                                     {
@@ -1554,7 +1523,7 @@ namespace AITool
                     {
                         image.Save("./errors/" + "TELEGRAM-ERROR-" + Path.GetFileName(CurImg.image_path) + ".jpg");
                     }
-                    Global.UpdateLabel("Can't upload error message to Telegram!", "lbl_errors");
+                    Global.UpdateLabel("Can't upload error message to Telegram!", "lbl_errors");                
 
                 }
 
@@ -1677,7 +1646,8 @@ namespace AITool
                         if (cam.Action_image_merge_detections_makecopy)
                             tmpfile = Path.Combine(Environment.GetEnvironmentVariable("TEMP"), Path.GetFileName(CurImg.image_path));
 
-                        cam.MergeImageAnnotations(tmpfile,CurImg);
+                        //cam.MergeImageAnnotations(tmpfile,CurImg);
+                        MayoFunc.MergeImageAnnotations(cam, CurImg, tmpfile); // Mayo Add
                         
                         if (cam.Action_image_merge_detections_makecopy && System.IO.File.Exists(tmpfile))  //it wont exist if no detections or failure...
                             CurImg = new ClsImageQueueItem(tmpfile, 1);
@@ -1719,15 +1689,9 @@ namespace AITool
                     {
                         if ((DateTime.Now - cam.last_trigger_time).TotalMinutes >= AppSettings.Settings.telegram_cooldown_minutes)
                         {
-                            string pictureFile = "detections\\" + cam.prefix.ToLower() + "\\" + Path.GetFileName(CurImg.image_path).Insert((Path.GetFileName(CurImg.image_path).Length - 4), "_telegram");
-                            if (System.IO.File.Exists(pictureFile))
-                            {
-                                string img_caption = AITOOL.ReplaceParams(cam, CurImg, cam.telegram_caption);
-                                await MayoFunc.TelegramUploadLegacy(pictureFile, img_caption);
-                                File.Delete(pictureFile);
-                            }
+                            await MayoFunc.SendImageToTelegram(cam, CurImg);
                         }
-                    }
+                    }                        
                     // End Add
                    
                     //upload to telegram

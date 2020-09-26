@@ -79,7 +79,6 @@ namespace AITool
             comboBox_filter_camera.Items.Add("All Cameras"); //add "all cameras" entry in filter dropdown combobox
             comboBox_filter_camera.SelectedIndex = comboBox_filter_camera.FindStringExact("All Cameras"); //select all cameras entry
 
-
             //---------------------------------------------------------------------------
             //SETTINGS TAB
 
