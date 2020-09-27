@@ -89,6 +89,7 @@ namespace AITool
 
             public string DisplayPercentageFormat = "({0:0.00}%)";
             public string DateFormat = "dd.MM.yy, HH:mm:ss";
+            public int TimeBetweenListRefreshsMS = 3000;
 
         }
 
@@ -325,7 +326,7 @@ namespace AITool
                     else if (IsFileValid(AppSettings.Settings.SettingsFileName + ".bak"))
                     {
                         //revert to backup if its good
-                        Global.Log("Reverting to backup settings file: " + AppSettings.Settings.SettingsFileName + ".bak");
+                        Global.Log("Error: Reverting to backup settings file: " + AppSettings.Settings.SettingsFileName + ".bak");
                         Global.Log("Loading settings from " + AppSettings.Settings.SettingsFileName + ".bak");
                         Settings = Global.ReadFromJsonFile<ClsSettings>(AppSettings.Settings.SettingsFileName + ".bak");
                     }
@@ -334,7 +335,7 @@ namespace AITool
                     {
 
                         //nothing valid
-                        Global.Log("Settings file AND backup were missing or corrupt.");
+                        Global.Log("Error: Settings file AND backup were missing or corrupt.");
 
                         if (File.Exists(AppSettings.Settings.SettingsFileName))
                             File.Delete(AppSettings.Settings.SettingsFileName);
@@ -407,7 +408,14 @@ namespace AITool
 
                             }
 
-                            Global.Log($"...Loaded {cnt} camera files.");
+                            if (cnt > 0)
+                            {
+                                Global.Log($"...Loaded {cnt} camera files.");
+                            }
+                            else
+                            {
+                                Global.Log($"...NO old camera txt files could be loaded.");
+                            }
 
                             Resave = (cnt > 1);
 
