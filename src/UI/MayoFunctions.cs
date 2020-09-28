@@ -58,7 +58,7 @@ namespace AITool
                             System.Drawing.SizeF size;
                             Brush rectBrush;
                             Color boxColor;
-                            bool is_telegram_mask = false;
+                            bool bSendTelegramMessage = false;
 
                             gfxImage.InterpolationMode = InterpolationMode.HighQualityBicubic;
                             gfxImage.SmoothingMode = SmoothingMode.HighQuality;
@@ -87,8 +87,8 @@ namespace AITool
                                 Int32.TryParse(lastposition.Split(',')[2], out int xmax);
                                 Int32.TryParse(lastposition.Split(',')[3], out int ymax);
 
-                                if (cam.telegram_mask_enabled && !is_telegram_mask) {
-                                    is_telegram_mask = this.TelegramOutsideMask(cam.name, xmin, xmax, ymin, ymax, img.Width, img.Height);
+                                if (cam.telegram_mask_enabled && !bSendTelegramMessage) {
+                                    bSendTelegramMessage ^= this.TelegramOutsideMask(cam.name, xmin, xmax, ymin, ymax, img.Width, img.Height);                                    
                                 }
 
                                 int penSize = 2;
@@ -137,7 +137,7 @@ namespace AITool
                                 if (Success)
                                 {
                                     img.Save(OutputImageFile, jpgEncoder, myEncoderParameters);
-                                    if (cam.telegram_mask_enabled && is_telegram_mask)
+                                    if (cam.telegram_mask_enabled && bSendTelegramMessage)
                                     {
                                         string telegram_file = "temp\\" + Path.GetFileName(OutputImageFile).Insert((Path.GetFileName(OutputImageFile).Length - 4), "_telegram"); 
                                         img.Save(telegram_file, jpgEncoder, myEncoderParameters);
@@ -216,7 +216,34 @@ namespace AITool
             }
 
             return boxColor;
-        }       
+        }
+
+        // ************************************************************************
+        public static string GetDetectionIcon(string objectType)
+        {
+            string emojiCode;
+
+            switch (objectType.ToLower())
+            {
+                case "person": emojiCode = "\U0001F468"; break;
+                case "car": emojiCode = "\U0001F697"; break;
+                case "truck": emojiCode = "\U0001F69A"; break;
+                case "boat": emojiCode = "\U0001F6E5"; break;
+                case "bicycle": emojiCode = "\U0001F6B2"; break;
+                case "bus": emojiCode = "\U0001F68C"; break;
+                case "motorcycle": emojiCode = "\U0001F3CD"; break;
+                case "horse": emojiCode = "\U0001F434"; break;
+                case "dog": emojiCode = "\U0001F436"; break;
+                //case "sheep": emojiCode = "\U000"; break;
+                case "bird": emojiCode = "\U0001F426"; break;
+                case "cow": emojiCode = "\U0001F42E"; break;
+                case "cat": emojiCode = "\U0001F63A"; break;
+                case "bear": emojiCode = "\U0001F43B"; break;                
+                default: emojiCode = objectType; break;
+            }
+            
+            return emojiCode;
+        }
 
         // ************************************************************************
         public void DrectoryCheck()
@@ -292,11 +319,20 @@ namespace AITool
         // ************************************************************************
         public bool TelegramOutsideMask(string cameraname, double xmin, double xmax, double ymin, double ymax, int width, int height)
         {
-            string strMaskFile = $"camera_masks\\{cameraname}_{width}x{height}_telegram.png";
+            string strMaskFile = $"cameras\\masks\\{cameraname}_{width}x{height}_telegram";            
 
             try
             {
-                if (System.IO.File.Exists(strMaskFile)) //only check if mask image exists
+                if (File.Exists(strMaskFile + ".bmp")){
+                    strMaskFile = strMaskFile + ".bmp";
+                }else if (File.Exists(strMaskFile + ".png")){
+                    strMaskFile = strMaskFile + ".png";
+                }else{
+                    Log($"     ->Camera has no telegram mask '{strMaskFile}', the object is OUTSIDE of the masked area.");
+                    return true;
+                }
+
+                if (File.Exists(strMaskFile)) //only check if mask image exists
                 {
                     //load mask file (in the image all places that have color (transparency > 9 [0-255 scale]) are masked)
                     using (var mask_img = new Bitmap(strMaskFile))
@@ -327,9 +363,20 @@ namespace AITool
                             System.Drawing.Color pixelColor = mask_img.GetPixel(x, y);
 
                             //if the pixel is transparent (A refers to the alpha channel), the point is outside of masked area(s)
-                            if (pixelColor.A < 10)
+                            if ( strMaskFile.EndsWith(".png") )
                             {
-                                result++;
+                                //if the pixel is transparent (A refers to the alpha channel), the point is outside of masked area(s)
+                                if (pixelColor.A < 10)
+                                {
+                                    result++;
+                                }
+                            }
+                            else
+                            {
+                                if (pixelColor.A == 0)  // object is in a transparent section of the image (not masked)
+                                {
+                                    result++;
+                                }
                             }
                         }
 
@@ -390,7 +437,7 @@ namespace AITool
                         string AssemVer = Assembly.GetExecutingAssembly().GetName().Version.ToString();
                         strReply = $"Version {AssemVer} built on {Global.RetrieveLinkerTimestamp()}";
                         break;
-                    default: strReply = "Invalid Command"; break;
+                    default: strReply = "Invalid Command" ; break;
                 }
                 
                 await botClient.SendTextMessageAsync( chatId: e.Message.Chat, text: strReply);

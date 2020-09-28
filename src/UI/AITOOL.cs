@@ -205,7 +205,7 @@ namespace AITool
 
                 if (AppSettings.Settings.telegram_token != "")
                 {
-                    //MayoFunc.StartTelegramListener(AppSettings.Settings.telegram_token);
+                   // MayoFunc.StartTelegramListener(AppSettings.Settings.telegram_token);
                 }       
                 // End Add
 
