@@ -94,6 +94,10 @@ namespace AITool
 
         public string last_image_file = "";
         public string last_image_file_with_detections = "";
+        
+        public int XOffset = 0;   //these are for when deepstack is having a problem with detection rectangle being in the wrong location
+        public int YOffset = 0;   //  Can be negative numbers
+
         [JsonIgnore]
         public DateTime last_trigger_time;
         [JsonIgnore]
@@ -182,6 +186,8 @@ namespace AITool
                                 Int32.TryParse(lastposition.Split(',')[2], out int xmax);
                                 Int32.TryParse(lastposition.Split(',')[3], out int ymax);
 
+                                xmin = xmin + this.XOffset;
+                                ymin = ymin + this.YOffset;
 
                                 System.Drawing.Rectangle rect = new System.Drawing.Rectangle(xmin, ymin, xmax - xmin, ymax - ymin);
 

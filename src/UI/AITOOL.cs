@@ -217,11 +217,11 @@ namespace AITool
                 //Load the database, and migrate any old csv lines if needed
                 HistoryDB = new SQLiteHistory(AppSettings.Settings.HistoryDBFileName, AppSettings.AlreadyRunning);
                 await HistoryDB.UpdateHistoryList(true);
-                if (HistoryDB.HistoryDic.Count == 0)
+                if (!AppSettings.AlreadyRunning && HistoryDB.HistoryDic.Count == 0)
                     await HistoryDB.MigrateHistoryCSV(AppSettings.Settings.HistoryFileName);
 
 
-                UpdateWatchers();
+                UpdateWatchers(false);
 
                 //Start the thread that watches for the file queue
                 if (!AppSettings.AlreadyRunning)
@@ -640,9 +640,10 @@ namespace AITool
         private static void OnError(object sender, ErrorEventArgs e)
         {
             Log("Error: File watcher error: " + e.GetException().Message);
+            UpdateWatchers(true);
         }
 
-        public static void UpdateWatchers()
+        public static void UpdateWatchers(bool Reset)
         {
 
             try
@@ -668,6 +669,27 @@ namespace AITool
                     }
                 }
 
+                if (Reset)
+                {
+                    foreach (ClsFileSystemWatcher watcher1 in watchers.Values)
+                    {
+                        if (watcher1 != null && watcher1.watcher != null)
+                        {
+                            try
+                            {
+                                watcher1.watcher.EnableRaisingEvents = false;
+                                watcher1.watcher.Dispose();
+                                watcher1.watcher = null;
+                            }
+                            catch (Exception ex)
+                            {
+
+                                Log($"Error: Failed to reset/clear watcher for folder '{watcher1.Name}' - {watcher1.Path}: {ex.Message}");
+                            }
+                        }
+                    }
+                    watchers.Clear();
+                }
 
                 //check each one to see if needs to be added
                 foreach (string item in names)
@@ -1811,7 +1833,7 @@ namespace AITool
                         for (int i = 0; i < topics.Count; i++)
                         {
                             MQTTClient mq = new MQTTClient();
-                            MqttClientPublishResult pr = await mq.PublishAsync(topics[i], payloads[i]);
+                            MqttClientPublishResult pr = await mq.PublishAsync(topics[i], payloads[i], cam.Action_mqtt_retain_message);
                             if (pr == null || pr.ReasonCode != MqttClientPublishReasonCode.Success)
                                 ret = false;
 

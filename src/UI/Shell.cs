@@ -44,7 +44,11 @@ namespace AITool
             RTFLogger = new RichTextBoxEx(RTF_Log, true);
             RTFLogger.AutoScroll.WriteFullFence(AppSettings.Settings.Autoscroll_log);
 
-            InitializeBackend();
+            this.Show();
+
+            UpdateToolstrip("Initializing and cleaning history database...");
+
+            AITOOL.InitializeBackend();
 
             string AssemVer = Assembly.GetExecutingAssembly().GetName().Version.ToString();
             lbl_version.Text = $"Version {AssemVer} built on {Global.RetrieveLinkerTimestamp()}";
@@ -66,8 +70,6 @@ namespace AITool
 
             LoadCameras(); //load camera list
 
-            //this.Opacity = 0;
-            this.Show();
 
             //---------------------------------------------------------------------------
             //HISTORY TAB
@@ -517,7 +519,7 @@ namespace AITool
         public void UpdatePieChart()
         {
 
-            if (tabControl1.SelectedIndex != 1 || !this.Visible || this.WindowState == FormWindowState.Minimized)
+            if (tabControl1.SelectedIndex != 1 || !this.Visible || this.WindowState == FormWindowState.Minimized || string.IsNullOrEmpty(comboBox1.Text))
                 return;
 
             int alerts = 0;
@@ -558,7 +560,7 @@ namespace AITool
 
             chart1.Series[0].Points.Clear();
 
-            chart1.Series[0].LegendText = "#VALY #VALX";
+            chart1.Series[0].LegendText = "#VALY"; //"#VALY #VALX"
             chart1.Series[0]["PieLabelStyle"] = "Disabled";
 
             int index = -1;
@@ -587,7 +589,7 @@ namespace AITool
         public async void UpdateTimeline()
         {
 
-            if (tabControl1.SelectedIndex != 1 || !this.Visible || this.WindowState == FormWindowState.Minimized)
+            if (tabControl1.SelectedIndex != 1 || !this.Visible || this.WindowState == FormWindowState.Minimized || string.IsNullOrEmpty(comboBox1.Text))
                 return;
 
             Log("Loading time line from cameras/history.csv ...");
@@ -746,7 +748,7 @@ namespace AITool
         public async void UpdateConfidenceChart()
         {
 
-            if (tabControl1.SelectedIndex != 1 || !this.Visible || this.WindowState == FormWindowState.Minimized)
+            if (tabControl1.SelectedIndex != 1 || !this.Visible || this.WindowState == FormWindowState.Minimized || string.IsNullOrEmpty(comboBox1.Text))
                 return;
 
 
@@ -985,6 +987,18 @@ namespace AITool
 
                     List<string> detectionsArray = Global.Split(detections, ";");//creates array of detected objects, used for adding text overlay
 
+
+                    int XOffset = 0;
+                    int YOffset = 0;
+
+                    Camera cam = AITOOL.GetCamera(hist.Camera);
+                    if (cam != null)
+                    {
+                        //apply offset if one is defined by user in json file
+                        XOffset = cam.XOffset;
+                        YOffset = cam.YOffset;
+                    }
+
                     //display a rectangle around each relevant object
                     for (int i = 0; i < countr; i++)
                     {
@@ -999,7 +1013,7 @@ namespace AITool
                         Int32.TryParse(positionsplt[3], out int ymax);
 
 
-                        showObject(e, color, xmin, ymin, xmax, ymax, detectionsArray[i]); //call rectangle drawing method, calls appropriate detection text
+                        showObject(e, color, xmin + XOffset, ymin + YOffset, xmax, ymax, detectionsArray[i]); //call rectangle drawing method, calls appropriate detection text
 
                     }
 
@@ -1025,7 +1039,7 @@ namespace AITool
 
         }
 
-        private void UpdateToolstrip()
+        private void UpdateToolstrip(string Message = "")
         {
             try
             {
@@ -1050,16 +1064,32 @@ namespace AITool
                 {
 
                     double hpm = 0;
-                    if (HistoryDB.AddedCount.ReadFullFence() > 0)
+                    int items = 0;
+
+                    if (HistoryDB != null)
+                        items = HistoryDB.HistoryDic.Count();
+
+                    if (HistoryDB != null && HistoryDB.AddedCount.ReadFullFence() > 0)
                         hpm = HistoryDB.AddedCount.ReadFullFence() / (DateTime.Now - HistoryDB.InitializeTime).TotalMinutes;
 
-                    toolStripStatusLabelHistoryItems.Text = $"{HistoryDB.HistoryDic.Count()} history items ({hpm.ToString("###0.0")} per minute)";
+                    toolStripStatusLabelHistoryItems.Text = $"{items} history items ({hpm.ToString("###0.0")} per minute)";
 
                     toolStripStatusLabel1.Text = $"| {alerts} Alerts | {irrelevantalerts} Irrelevant Alerts | {falsealerts} False Alerts | {skipped} Skipped Images | {ImageProcessQueue.Count} in Queue";
 
                     toolStripStatusErrors.Text = $"| {errors.ReadFullFence()} New Errors";
 
-
+                    if (!string.IsNullOrEmpty(Message))
+                    {
+                        toolStripStatusLabelInfo.Text = Message;
+                    }
+                    else if (ImageProcessQueue.Count > 0)
+                    {
+                        toolStripStatusLabelInfo.Text = "Working...";
+                    }
+                    else
+                    {
+                        toolStripStatusLabelInfo.Text = "Idle.";
+                    }
 
                     if (errors.ReadFullFence() > 0)
                     {
@@ -1094,14 +1124,16 @@ namespace AITool
                 if (FilterChanged || (tabControl1.SelectedIndex == 2 && this.Visible && !(this.WindowState == FormWindowState.Minimized)))
                 {
 
+                    if (this.Visible && !(this.WindowState == FormWindowState.Minimized))
+                        this.UpdateToolstrip("Updating List...");
+
                     if (FilterChanged)
                         cw = new Global_GUI.CursorWait();
 
-                    if (await HistoryDB.HasUpdates() || FilterChanged)
+                    if ((HistoryDB !=null && (await HistoryDB.HasUpdates()) || FilterChanged))
                     {
                         Global_GUI.UpdateFOLV_add(folv_history, HistoryDB.HistoryDic.Values.ToList(),FilterChanged,Follow);
 
-                        this.UpdateToolstrip();
 
                         if (FilterChanged)
                         {
@@ -1129,10 +1161,16 @@ namespace AITool
                     }
                     else
                     {
-                        //Log("No history file updates.");
+                        //Log("Info: No history file updates.");
                     }
 
+                    if (this.Visible && !(this.WindowState == FormWindowState.Minimized))
+                        this.UpdateToolstrip("Idle.");
 
+                }
+                else
+                {
+                    //Log("Info: Not updating history, window not visible or history tab not selected.");
                 }
 
             }
@@ -1153,30 +1191,26 @@ namespace AITool
         //check if a filter applies on given string of history list entry 
         private bool checkListFilters(History hist)   //string cameraname, string success, string objects_and_confidence
         {
-            //string tmp = hist.Detections.ToLower(); // objects_and_confidence.ToLower();
 
-            if (!hist.IsPerson && cb_filter_person.Checked)
-                return false;
+            bool ret = false;
 
-            if (!hist.IsVehicle && cb_filter_vehicle.Checked)
-                return false;
+            if (hist.Success && cb_filter_success.Checked)
+                ret = true;
+            else if (!hist.Success && cb_filter_nosuccess.Checked)
+                ret = true;
+            else if (hist.WasSkipped && cb_filter_skipped.Checked)
+                ret = true;
+            else if (hist.IsPerson && cb_filter_person.Checked)
+                ret = true;
+            else if (hist.IsVehicle && cb_filter_vehicle.Checked)
+                ret = true;
+            else if (hist.IsAnimal && cb_filter_animal.Checked)
+                ret = true;
 
-            if (!hist.IsAnimal && cb_filter_animal.Checked)
-                return false;
+            if (ret && comboBox_filter_camera.Text != "All Cameras" && hist.Camera.Trim().ToLower() != comboBox_filter_camera.Text.Trim().ToLower())
+                ret = false;
 
-            if (!hist.Success && cb_filter_success.Checked)
-                return false; //if filter "only successful detections" is enabled, don't load false alerts
-
-            if (hist.Success && cb_filter_nosuccess.Checked)
-                return false;   //if filter "only unsuccessful detections" is enabled, don't load true alerts
-
-            if (hist.WasSkipped && cb_filter_skipped.Checked)
-                return false;
-
-            if (comboBox_filter_camera.Text != "All Cameras" && hist.Camera.Trim().ToLower() != comboBox_filter_camera.Text.Trim().ToLower())
-                return false;
-
-            return true;
+            return ret;
 
 
         }
@@ -1748,7 +1782,7 @@ namespace AITool
 
                 AppSettings.Save();
 
-                UpdateWatchers();
+                UpdateWatchers(true);
 
                 Log("Camera saved.");
 
@@ -1877,7 +1911,7 @@ namespace AITool
             //send_errors = AppSettings.Settings.send_errors;
 
             //update fswatcher to watch new input folder
-            UpdateWatchers();
+            UpdateWatchers(true);
 
 
             bool noneg = false;
