@@ -323,6 +323,7 @@
     </Compile>
     <Compile Include="Global-GUI.cs" />
     <Compile Include="MayoFunctions.cs" />
+    <Compile Include="MessageManager.cs" />
     <Compile Include="OSVersionExt\EnvironmentProvider.cs" />
     <Compile Include="OSVersionExt\IEnvironment.cs" />
     <Compile Include="OSVersionExt\IRegistry.cs" />

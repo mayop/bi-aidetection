@@ -89,11 +89,15 @@ namespace AITool
         public static DateTime last_telegram_trigger_time = DateTime.MinValue;
         public static DateTime TelegramRetryTime = DateTime.MinValue;
 
+        public static ThreadSafe.Boolean IsClosing = new ThreadSafe.Boolean(false);
+
         public static async Task InitializeBackend()
         {
 
             try
             {
+
+
 
                 //initialize the log and history file writers - log entries will be queued for fast file logging performance AND if the file
                 //is locked for any reason, it will wait in the queue until it can be written
@@ -134,7 +138,7 @@ namespace AITool
                     OSVersionExtension.OperatingSystem ov = OSVersion.GetOperatingSystem();
 
                     Log($"   Installed NET Framework version '{Global.GetFrameworkVersion()}', Target version '{AppDomain.CurrentDomain.SetupInformation.TargetFrameworkName}'");
-                    Log($"   Windows '{ov.ToString()}', version '{vi.Version.ToString()}' Release ID '{OSVersion.MajorVersion10Properties().ReleaseId}', 64Bit={OSVersion.Is64BitOperatingSystem}, Workstation={OSVersion.IsWorkstation}, Server={OSVersion.IsServer}");
+                    Log($"   Windows '{ov.ToString()}', version '{vi.Version.ToString()}' Release ID '{OSVersion.MajorVersion10Properties().ReleaseId}', 64Bit={OSVersion.Is64BitOperatingSystem}, Workstation={OSVersion.IsWorkstation}, Server={OSVersion.IsServer}, SERVICE={Global.IsService}");
 
                 }
                 catch (Exception ex)
@@ -226,6 +230,10 @@ namespace AITool
                 //Start the thread that watches for the file queue
                 if (!AppSettings.AlreadyRunning)
                     Task.Run(ImageQueueLoop);
+
+
+                if (AppSettings.LastShutdownState.StartsWith("checkpoint") && !AppSettings.AlreadyRunning)
+                    Global.Log($"Error: Program did not shutdown gracefully.  Last log entry was '{AppSettings.LastLogEntry}', '{AppSettings.LastShutdownState}'");
 
 
             }

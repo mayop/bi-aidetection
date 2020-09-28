@@ -21,8 +21,10 @@ namespace AITool
     public static class AppSettings
     {
         public static ClsSettings Settings = new ClsSettings();
-        private static string LastSettingsJSON = "";
         public static bool AlreadyRunning = false;
+        public static string LastShutdownState = "";
+        public static string LastLogEntry = "";
+        private static string LastSettingsJSON = "";
         private static Object ThreadLock = new Object();
         public class ClsSettings
         {
@@ -32,6 +34,7 @@ namespace AITool
             public string LogFileName = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, Path.GetFileNameWithoutExtension(Assembly.GetEntryAssembly().Location) + ".LOG");
             [JsonIgnore]
             public string HistoryFileName = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "cameras\\history.csv");
+            [JsonIgnore]
             public string HistoryDBFileName = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, Path.GetFileNameWithoutExtension(Assembly.GetEntryAssembly().Location) + ".Database.SQLITE3");
 
             public string telegram_token = "";
