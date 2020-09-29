@@ -614,7 +614,7 @@ namespace AITool
         {
             using (Frm_DynamicMasking frm = new Frm_DynamicMasking())
             {
-
+                frm.cam = cam;
                 frm.Text = "Dynamic Masking Settings - " + cam.name;
 
                 //Camera cam = AITOOL.GetCamera(list2.SelectedItems[0].Text);
@@ -654,6 +654,26 @@ namespace AITool
                     AppSettings.Save();
 
                 }
+            }
+        }
+
+        private void staticMaskMenu_Opening(object sender, CancelEventArgs e)
+        {
+
+        }
+
+        private void createDynamicMaskTemporaryToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (contextMenuPosObj != null)
+            {
+                contextMenuPosObj.isStatic = false;
+                contextMenuPosObj.createDate = DateTime.Now;
+                //contextMenuPosObj.counter = 0;
+                cam.maskManager.masked_positions.Add(contextMenuPosObj);
+                cam.maskManager.last_positions_history.Remove(contextMenuPosObj);
+                contextMenuPosObj = null;
+                Refresh();
+                AppSettings.Save();
             }
         }
     }
