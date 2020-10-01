@@ -66,7 +66,7 @@ namespace AITool
         public static MovingCalcs qcalc = new MovingCalcs(250);
         public static MovingCalcs qsizecalc = new MovingCalcs(250);
         
-        public static ThreadSafe.Integer errors = new ThreadSafe.Integer(0);
+        public static ClsDetail errors = new ClsDetail();
         
         public static ConcurrentQueue<ClsImageQueueItem> ImageProcessQueue = new ConcurrentQueue<ClsImageQueueItem>();
 
@@ -1117,7 +1117,7 @@ namespace AITool
                                             //add all triggering_objects of the specific camera into a list and the correlating confidence levels into a second list
                                             foreach (Object user in response.predictions)
                                             {
-                                                // just extra log lines - Log($"   {user.label.ToString()} ({Math.Round((user.confidence * 100), 2).ToString() }%):");
+                                                Log($"   {user.label.ToString()} ({Math.Round((user.confidence * 100), 2).ToString() }%): Upper: {cam.threshold_lower} Lower: {cam.threshold_upper}");
 
                                                 using (var img = new Bitmap(CurImg.image_path))
                                                 {
@@ -1184,6 +1184,12 @@ namespace AITool
                                                 }
 
                                             }  //end loop over current object list
+
+                                            if (cam.maskManager.masking_enabled)
+                                            {
+                                                //mark the end of AI detection for the current image
+                                                cam.maskManager.lastDetectionDate = DateTime.Now; 
+                                            }
 
                                             //if one or more objects were detected, that are 1. relevant, 2. within confidence limits and 3. outside of masked areas
                                             if (objects.Count() > 0)
