@@ -35,13 +35,13 @@
             this.groupBox1 = new System.Windows.Forms.GroupBox();
             this.cb_mergeannotations = new System.Windows.Forms.CheckBox();
             this.tb_network_folder_filename = new System.Windows.Forms.TextBox();
-            this.label8 = new System.Windows.Forms.Label();
+            this.label15 = new System.Windows.Forms.Label();
             this.label7 = new System.Windows.Forms.Label();
             this.tb_telegram_caption = new System.Windows.Forms.TextBox();
             this.linkLabelMqttSettings = new System.Windows.Forms.LinkLabel();
-            this.label4 = new System.Windows.Forms.Label();
-            this.label10 = new System.Windows.Forms.Label();
-            this.label2 = new System.Windows.Forms.Label();
+            this.label14 = new System.Windows.Forms.Label();
+            this.label13 = new System.Windows.Forms.Label();
+            this.label12 = new System.Windows.Forms.Label();
             this.tb_MQTT_Payload_cancel = new System.Windows.Forms.TextBox();
             this.tb_MQTT_Payload = new System.Windows.Forms.TextBox();
             this.tb_MQTT_Topic_Cancel = new System.Windows.Forms.TextBox();
@@ -76,10 +76,10 @@
             this.btnCancel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.btnCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             this.btnCancel.Font = new System.Drawing.Font("Segoe UI", 9F);
-            this.btnCancel.Location = new System.Drawing.Point(649, 417);
-            this.btnCancel.Margin = new System.Windows.Forms.Padding(2, 3, 2, 3);
+            this.btnCancel.Location = new System.Drawing.Point(836, 444);
+            this.btnCancel.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.btnCancel.Name = "btnCancel";
-            this.btnCancel.Size = new System.Drawing.Size(62, 30);
+            this.btnCancel.Size = new System.Drawing.Size(70, 30);
             this.btnCancel.TabIndex = 3;
             this.btnCancel.Text = "Cancel";
             this.btnCancel.UseVisualStyleBackColor = true;
@@ -89,10 +89,10 @@
             // 
             this.btnSave.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.btnSave.Font = new System.Drawing.Font("Segoe UI", 9F);
-            this.btnSave.Location = new System.Drawing.Point(568, 417);
-            this.btnSave.Margin = new System.Windows.Forms.Padding(2, 3, 2, 3);
+            this.btnSave.Location = new System.Drawing.Point(758, 444);
+            this.btnSave.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.btnSave.Name = "btnSave";
-            this.btnSave.Size = new System.Drawing.Size(62, 30);
+            this.btnSave.Size = new System.Drawing.Size(70, 30);
             this.btnSave.TabIndex = 2;
             this.btnSave.Text = "Save";
             this.btnSave.UseVisualStyleBackColor = true;
@@ -100,19 +100,20 @@
             // 
             // groupBox1
             // 
-            this.groupBox1.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            this.groupBox1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.groupBox1.BackColor = System.Drawing.SystemColors.Control;
             this.groupBox1.Controls.Add(this.cb_mask_telegram);
             this.groupBox1.Controls.Add(this.cb_mergeannotations);
             this.groupBox1.Controls.Add(this.tb_network_folder_filename);
-            this.groupBox1.Controls.Add(this.label8);
+            this.groupBox1.Controls.Add(this.label15);
             this.groupBox1.Controls.Add(this.label7);
             this.groupBox1.Controls.Add(this.tb_telegram_caption);
             this.groupBox1.Controls.Add(this.linkLabelMqttSettings);
-            this.groupBox1.Controls.Add(this.label4);
-            this.groupBox1.Controls.Add(this.label10);
-            this.groupBox1.Controls.Add(this.label2);
+            this.groupBox1.Controls.Add(this.label14);
+            this.groupBox1.Controls.Add(this.label13);
+            this.groupBox1.Controls.Add(this.label12);
             this.groupBox1.Controls.Add(this.tb_MQTT_Payload_cancel);
             this.groupBox1.Controls.Add(this.tb_MQTT_Payload);
             this.groupBox1.Controls.Add(this.tb_MQTT_Topic_Cancel);
@@ -135,19 +136,18 @@
             this.groupBox1.Controls.Add(this.label5);
             this.groupBox1.Controls.Add(this.label6);
             this.groupBox1.Controls.Add(this.tb_cooldown);
-            this.groupBox1.Location = new System.Drawing.Point(7, 83);
-            this.groupBox1.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.groupBox1.Location = new System.Drawing.Point(12, 59);
+            this.groupBox1.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
             this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Padding = new System.Windows.Forms.Padding(2, 2, 2, 2);
-            this.groupBox1.Size = new System.Drawing.Size(702, 326);
+            this.groupBox1.Padding = new System.Windows.Forms.Padding(3, 4, 3, 4);
+            this.groupBox1.Size = new System.Drawing.Size(894, 376);
             this.groupBox1.TabIndex = 4;
             this.groupBox1.TabStop = false;
             // 
             // cb_mergeannotations
             // 
             this.cb_mergeannotations.AutoSize = true;
-            this.cb_mergeannotations.Location = new System.Drawing.Point(249, 18);
-            this.cb_mergeannotations.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.cb_mergeannotations.Location = new System.Drawing.Point(263, 19);
             this.cb_mergeannotations.Name = "cb_mergeannotations";
             this.cb_mergeannotations.Size = new System.Drawing.Size(196, 19);
             this.cb_mergeannotations.TabIndex = 46;
@@ -157,31 +157,28 @@
             // 
             // tb_network_folder_filename
             // 
-            this.tb_network_folder_filename.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.tb_network_folder_filename.Location = new System.Drawing.Point(504, 72);
-            this.tb_network_folder_filename.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.tb_network_folder_filename.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.tb_network_folder_filename.Location = new System.Drawing.Point(555, 77);
             this.tb_network_folder_filename.Name = "tb_network_folder_filename";
-            this.tb_network_folder_filename.Size = new System.Drawing.Size(190, 23);
+            this.tb_network_folder_filename.Size = new System.Drawing.Size(331, 23);
             this.tb_network_folder_filename.TabIndex = 45;
             this.toolTip1.SetToolTip(this.tb_network_folder_filename, "The filename to be created in the network folder NOT including file extension.  F" +
         "or example, [camera] would be saved as MYCAMERA.JPG");
             // 
-            // label8
+            // label15
             // 
-            this.label8.AutoSize = true;
-            this.label8.Location = new System.Drawing.Point(443, 75);
-            this.label8.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
-            this.label8.Name = "label8";
-            this.label8.Size = new System.Drawing.Size(58, 15);
-            this.label8.TabIndex = 44;
-            this.label8.Text = "Filename:";
+            this.label15.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.label15.AutoSize = true;
+            this.label15.Location = new System.Drawing.Point(491, 81);
+            this.label15.Name = "label15";
+            this.label15.Size = new System.Drawing.Size(58, 15);
+            this.label15.TabIndex = 44;
+            this.label15.Text = "Filename:";
             // 
             // label7
             // 
             this.label7.AutoSize = true;
-            this.label7.Location = new System.Drawing.Point(194, 46);
-            this.label7.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
+            this.label7.Location = new System.Drawing.Point(205, 52);
             this.label7.Name = "label7";
             this.label7.Size = new System.Drawing.Size(52, 15);
             this.label7.TabIndex = 43;
@@ -191,17 +188,15 @@
             // 
             this.tb_telegram_caption.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.tb_telegram_caption.Location = new System.Drawing.Point(249, 45);
-            this.tb_telegram_caption.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.tb_telegram_caption.Location = new System.Drawing.Point(263, 48);
             this.tb_telegram_caption.Name = "tb_telegram_caption";
-            this.tb_telegram_caption.Size = new System.Drawing.Size(445, 23);
+            this.tb_telegram_caption.Size = new System.Drawing.Size(623, 23);
             this.tb_telegram_caption.TabIndex = 42;
             // 
             // linkLabelMqttSettings
             // 
             this.linkLabelMqttSettings.AutoSize = true;
-            this.linkLabelMqttSettings.Location = new System.Drawing.Point(74, 149);
-            this.linkLabelMqttSettings.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
+            this.linkLabelMqttSettings.Location = new System.Drawing.Point(78, 170);
             this.linkLabelMqttSettings.Name = "linkLabelMqttSettings";
             this.linkLabelMqttSettings.Size = new System.Drawing.Size(49, 15);
             this.linkLabelMqttSettings.TabIndex = 41;
@@ -210,71 +205,67 @@
             this.toolTip1.SetToolTip(this.linkLabelMqttSettings, "Global MQTT Settings");
             this.linkLabelMqttSettings.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLabelMqttSettings_LinkClicked);
             // 
-            // label4
+            // label14
             // 
-            this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(452, 100);
-            this.label4.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
-            this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(49, 15);
-            this.label4.TabIndex = 40;
-            this.label4.Text = "Params:";
+            this.label14.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.label14.AutoSize = true;
+            this.label14.Location = new System.Drawing.Point(500, 112);
+            this.label14.Name = "label14";
+            this.label14.Size = new System.Drawing.Size(49, 15);
+            this.label14.TabIndex = 40;
+            this.label14.Text = "Params:";
             // 
-            // label10
+            // label13
             // 
-            this.label10.AutoSize = true;
-            this.label10.ForeColor = System.Drawing.Color.DarkRed;
-            this.label10.Location = new System.Drawing.Point(449, 171);
-            this.label10.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
-            this.label10.Name = "label10";
-            this.label10.Size = new System.Drawing.Size(52, 15);
-            this.label10.TabIndex = 39;
-            this.label10.Text = "Payload:";
+            this.label13.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.label13.AutoSize = true;
+            this.label13.ForeColor = System.Drawing.Color.DarkRed;
+            this.label13.Location = new System.Drawing.Point(497, 198);
+            this.label13.Name = "label13";
+            this.label13.Size = new System.Drawing.Size(52, 15);
+            this.label13.TabIndex = 39;
+            this.label13.Text = "Payload:";
             // 
-            // label2
+            // label12
             // 
-            this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(449, 148);
-            this.label2.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
-            this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(52, 15);
-            this.label2.TabIndex = 39;
-            this.label2.Text = "Payload:";
+            this.label12.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.label12.AutoSize = true;
+            this.label12.Location = new System.Drawing.Point(497, 170);
+            this.label12.Name = "label12";
+            this.label12.Size = new System.Drawing.Size(52, 15);
+            this.label12.TabIndex = 39;
+            this.label12.Text = "Payload:";
             // 
             // tb_MQTT_Payload_cancel
             // 
-            this.tb_MQTT_Payload_cancel.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.tb_MQTT_Payload_cancel.Location = new System.Drawing.Point(504, 171);
-            this.tb_MQTT_Payload_cancel.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.tb_MQTT_Payload_cancel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.tb_MQTT_Payload_cancel.Location = new System.Drawing.Point(556, 194);
             this.tb_MQTT_Payload_cancel.Name = "tb_MQTT_Payload_cancel";
-            this.tb_MQTT_Payload_cancel.Size = new System.Drawing.Size(190, 23);
+            this.tb_MQTT_Payload_cancel.Size = new System.Drawing.Size(331, 23);
             this.tb_MQTT_Payload_cancel.TabIndex = 38;
             // 
             // tb_MQTT_Payload
             // 
-            this.tb_MQTT_Payload.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.tb_MQTT_Payload.Location = new System.Drawing.Point(504, 147);
-            this.tb_MQTT_Payload.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.tb_MQTT_Payload.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.tb_MQTT_Payload.Location = new System.Drawing.Point(556, 166);
             this.tb_MQTT_Payload.Name = "tb_MQTT_Payload";
-            this.tb_MQTT_Payload.Size = new System.Drawing.Size(190, 23);
+            this.tb_MQTT_Payload.Size = new System.Drawing.Size(331, 23);
             this.tb_MQTT_Payload.TabIndex = 38;
             // 
             // tb_MQTT_Topic_Cancel
             // 
-            this.tb_MQTT_Topic_Cancel.Location = new System.Drawing.Point(249, 171);
-            this.tb_MQTT_Topic_Cancel.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.tb_MQTT_Topic_Cancel.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.tb_MQTT_Topic_Cancel.Location = new System.Drawing.Point(263, 194);
             this.tb_MQTT_Topic_Cancel.Name = "tb_MQTT_Topic_Cancel";
-            this.tb_MQTT_Topic_Cancel.Size = new System.Drawing.Size(189, 23);
+            this.tb_MQTT_Topic_Cancel.Size = new System.Drawing.Size(222, 23);
             this.tb_MQTT_Topic_Cancel.TabIndex = 37;
             // 
             // label9
             // 
             this.label9.AutoSize = true;
             this.label9.ForeColor = System.Drawing.Color.DarkRed;
-            this.label9.Location = new System.Drawing.Point(169, 171);
-            this.label9.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
+            this.label9.Location = new System.Drawing.Point(180, 198);
             this.label9.Name = "label9";
             this.label9.Size = new System.Drawing.Size(77, 15);
             this.label9.TabIndex = 36;
@@ -282,17 +273,17 @@
             // 
             // tb_MQTT_Topic
             // 
-            this.tb_MQTT_Topic.Location = new System.Drawing.Point(249, 147);
-            this.tb_MQTT_Topic.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.tb_MQTT_Topic.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.tb_MQTT_Topic.Location = new System.Drawing.Point(263, 166);
             this.tb_MQTT_Topic.Name = "tb_MQTT_Topic";
-            this.tb_MQTT_Topic.Size = new System.Drawing.Size(189, 23);
+            this.tb_MQTT_Topic.Size = new System.Drawing.Size(222, 23);
             this.tb_MQTT_Topic.TabIndex = 37;
             // 
             // label1
             // 
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(169, 150);
-            this.label1.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
+            this.label1.Location = new System.Drawing.Point(180, 170);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(77, 15);
             this.label1.TabIndex = 36;
@@ -301,8 +292,7 @@
             // cb_MQTT_enabled
             // 
             this.cb_MQTT_enabled.AutoSize = true;
-            this.cb_MQTT_enabled.Location = new System.Drawing.Point(7, 147);
-            this.cb_MQTT_enabled.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.cb_MQTT_enabled.Location = new System.Drawing.Point(13, 168);
             this.cb_MQTT_enabled.Name = "cb_MQTT_enabled";
             this.cb_MQTT_enabled.Size = new System.Drawing.Size(60, 19);
             this.cb_MQTT_enabled.TabIndex = 35;
@@ -314,18 +304,16 @@
             // 
             this.tb_Sounds.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.tb_Sounds.Location = new System.Drawing.Point(249, 122);
-            this.tb_Sounds.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.tb_Sounds.Location = new System.Drawing.Point(263, 137);
             this.tb_Sounds.Name = "tb_Sounds";
-            this.tb_Sounds.Size = new System.Drawing.Size(445, 23);
+            this.tb_Sounds.Size = new System.Drawing.Size(624, 23);
             this.tb_Sounds.TabIndex = 34;
             this.toolTip1.SetToolTip(this.tb_Sounds, resources.GetString("tb_Sounds.ToolTip"));
             // 
             // cb_PlaySound
             // 
             this.cb_PlaySound.AutoSize = true;
-            this.cb_PlaySound.Location = new System.Drawing.Point(7, 123);
-            this.cb_PlaySound.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.cb_PlaySound.Location = new System.Drawing.Point(13, 139);
             this.cb_PlaySound.Name = "cb_PlaySound";
             this.cb_PlaySound.Size = new System.Drawing.Size(88, 19);
             this.cb_PlaySound.TabIndex = 33;
@@ -334,31 +322,29 @@
             // 
             // tb_RunExternalProgramArgs
             // 
-            this.tb_RunExternalProgramArgs.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.tb_RunExternalProgramArgs.Location = new System.Drawing.Point(504, 98);
-            this.tb_RunExternalProgramArgs.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.tb_RunExternalProgramArgs.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.tb_RunExternalProgramArgs.Location = new System.Drawing.Point(555, 108);
             this.tb_RunExternalProgramArgs.Name = "tb_RunExternalProgramArgs";
-            this.tb_RunExternalProgramArgs.Size = new System.Drawing.Size(190, 23);
+            this.tb_RunExternalProgramArgs.Size = new System.Drawing.Size(331, 23);
             this.tb_RunExternalProgramArgs.TabIndex = 32;
             this.toolTip1.SetToolTip(this.tb_RunExternalProgramArgs, "Command line arguments to run the external app or script");
             // 
             // tb_RunExternalProgram
             // 
+            this.tb_RunExternalProgram.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.tb_RunExternalProgram.AutoCompleteMode = System.Windows.Forms.AutoCompleteMode.SuggestAppend;
             this.tb_RunExternalProgram.AutoCompleteSource = System.Windows.Forms.AutoCompleteSource.FileSystem;
-            this.tb_RunExternalProgram.Location = new System.Drawing.Point(249, 98);
-            this.tb_RunExternalProgram.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.tb_RunExternalProgram.Location = new System.Drawing.Point(263, 108);
             this.tb_RunExternalProgram.Name = "tb_RunExternalProgram";
-            this.tb_RunExternalProgram.Size = new System.Drawing.Size(189, 23);
+            this.tb_RunExternalProgram.Size = new System.Drawing.Size(222, 23);
             this.tb_RunExternalProgram.TabIndex = 31;
             this.toolTip1.SetToolTip(this.tb_RunExternalProgram, "Path to EXE, BAT, etc");
             // 
             // cb_RunProgram
             // 
             this.cb_RunProgram.AutoSize = true;
-            this.cb_RunProgram.Location = new System.Drawing.Point(7, 98);
-            this.cb_RunProgram.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.cb_RunProgram.Location = new System.Drawing.Point(13, 110);
             this.cb_RunProgram.Name = "cb_RunProgram";
             this.cb_RunProgram.Size = new System.Drawing.Size(144, 19);
             this.cb_RunProgram.TabIndex = 30;
@@ -367,20 +353,21 @@
             // 
             // tb_network_folder
             // 
+            this.tb_network_folder.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.tb_network_folder.AutoCompleteMode = System.Windows.Forms.AutoCompleteMode.SuggestAppend;
             this.tb_network_folder.AutoCompleteSource = System.Windows.Forms.AutoCompleteSource.FileSystem;
-            this.tb_network_folder.Location = new System.Drawing.Point(249, 72);
-            this.tb_network_folder.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.tb_network_folder.Location = new System.Drawing.Point(263, 77);
             this.tb_network_folder.Name = "tb_network_folder";
-            this.tb_network_folder.Size = new System.Drawing.Size(189, 23);
+            this.tb_network_folder.Size = new System.Drawing.Size(222, 23);
             this.tb_network_folder.TabIndex = 28;
             // 
             // cb_copyAlertImages
             // 
             this.cb_copyAlertImages.AutoSize = true;
             this.cb_copyAlertImages.Font = new System.Drawing.Font("Segoe UI", 9F);
-            this.cb_copyAlertImages.Location = new System.Drawing.Point(7, 72);
-            this.cb_copyAlertImages.Margin = new System.Windows.Forms.Padding(23, 5, 4, 5);
+            this.cb_copyAlertImages.Location = new System.Drawing.Point(13, 79);
+            this.cb_copyAlertImages.Margin = new System.Windows.Forms.Padding(40, 8, 7, 8);
             this.cb_copyAlertImages.Name = "cb_copyAlertImages";
             this.cb_copyAlertImages.Size = new System.Drawing.Size(172, 19);
             this.cb_copyAlertImages.TabIndex = 27;
@@ -393,11 +380,11 @@
             this.tbCancelUrl.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.tbCancelUrl.Font = new System.Drawing.Font("Consolas", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.tbCancelUrl.Location = new System.Drawing.Point(7, 273);
-            this.tbCancelUrl.Margin = new System.Windows.Forms.Padding(6, 3, 6, 3);
+            this.tbCancelUrl.Location = new System.Drawing.Point(14, 308);
+            this.tbCancelUrl.Margin = new System.Windows.Forms.Padding(10, 6, 10, 6);
             this.tbCancelUrl.Multiline = true;
             this.tbCancelUrl.Name = "tbCancelUrl";
-            this.tbCancelUrl.Size = new System.Drawing.Size(686, 47);
+            this.tbCancelUrl.Size = new System.Drawing.Size(873, 54);
             this.tbCancelUrl.TabIndex = 22;
             this.toolTip1.SetToolTip(this.tbCancelUrl, "URLs that cancel the alert - For BI, use ");
             // 
@@ -406,11 +393,11 @@
             this.tbTriggerUrl.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.tbTriggerUrl.Font = new System.Drawing.Font("Consolas", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.tbTriggerUrl.Location = new System.Drawing.Point(7, 208);
-            this.tbTriggerUrl.Margin = new System.Windows.Forms.Padding(6, 3, 6, 3);
+            this.tbTriggerUrl.Location = new System.Drawing.Point(14, 227);
+            this.tbTriggerUrl.Margin = new System.Windows.Forms.Padding(10, 6, 10, 6);
             this.tbTriggerUrl.Multiline = true;
             this.tbTriggerUrl.Name = "tbTriggerUrl";
-            this.tbTriggerUrl.Size = new System.Drawing.Size(686, 47);
+            this.tbTriggerUrl.Size = new System.Drawing.Size(873, 54);
             this.tbTriggerUrl.TabIndex = 22;
             this.tbTriggerUrl.Text = "test\r\ntest2\r\ntest3";
             this.toolTip1.SetToolTip(this.tbTriggerUrl, "A list of URLs each on their own line OR seperated with commas that will be trigg" +
@@ -421,11 +408,11 @@
             this.label11.AutoSize = true;
             this.label11.Font = new System.Drawing.Font("Segoe UI", 9F);
             this.label11.ForeColor = System.Drawing.Color.DarkRed;
-            this.label11.Location = new System.Drawing.Point(5, 257);
-            this.label11.Margin = new System.Windows.Forms.Padding(20, 0, 3, 0);
-            this.label11.MinimumSize = new System.Drawing.Size(90, 0);
+            this.label11.Location = new System.Drawing.Point(11, 287);
+            this.label11.Margin = new System.Windows.Forms.Padding(35, 0, 5, 0);
+            this.label11.MinimumSize = new System.Drawing.Size(158, 0);
             this.label11.Name = "label11";
-            this.label11.Size = new System.Drawing.Size(90, 15);
+            this.label11.Size = new System.Drawing.Size(158, 15);
             this.label11.TabIndex = 1;
             this.label11.Text = "Cancel URL(s):";
             // 
@@ -433,11 +420,11 @@
             // 
             this.lblTriggerUrl.AutoSize = true;
             this.lblTriggerUrl.Font = new System.Drawing.Font("Segoe UI", 9F);
-            this.lblTriggerUrl.Location = new System.Drawing.Point(5, 189);
-            this.lblTriggerUrl.Margin = new System.Windows.Forms.Padding(20, 0, 3, 0);
-            this.lblTriggerUrl.MinimumSize = new System.Drawing.Size(90, 0);
+            this.lblTriggerUrl.Location = new System.Drawing.Point(11, 206);
+            this.lblTriggerUrl.Margin = new System.Windows.Forms.Padding(35, 0, 5, 0);
+            this.lblTriggerUrl.MinimumSize = new System.Drawing.Size(158, 0);
             this.lblTriggerUrl.Name = "lblTriggerUrl";
-            this.lblTriggerUrl.Size = new System.Drawing.Size(90, 15);
+            this.lblTriggerUrl.Size = new System.Drawing.Size(158, 15);
             this.lblTriggerUrl.TabIndex = 1;
             this.lblTriggerUrl.Text = "Trigger URL(s):";
             // 
@@ -445,8 +432,8 @@
             // 
             this.cb_telegram.AutoSize = true;
             this.cb_telegram.Font = new System.Drawing.Font("Segoe UI", 9F);
-            this.cb_telegram.Location = new System.Drawing.Point(7, 45);
-            this.cb_telegram.Margin = new System.Windows.Forms.Padding(6, 3, 3, 3);
+            this.cb_telegram.Location = new System.Drawing.Point(13, 50);
+            this.cb_telegram.Margin = new System.Windows.Forms.Padding(10, 6, 5, 6);
             this.cb_telegram.Name = "cb_telegram";
             this.cb_telegram.Size = new System.Drawing.Size(184, 19);
             this.cb_telegram.TabIndex = 24;
@@ -457,8 +444,8 @@
             // 
             this.label5.AutoSize = true;
             this.label5.Font = new System.Drawing.Font("Segoe UI", 9F);
-            this.label5.Location = new System.Drawing.Point(7, 19);
-            this.label5.Margin = new System.Windows.Forms.Padding(20, 0, 3, 0);
+            this.label5.Location = new System.Drawing.Point(11, 20);
+            this.label5.Margin = new System.Windows.Forms.Padding(35, 0, 5, 0);
             this.label5.Name = "label5";
             this.label5.Size = new System.Drawing.Size(91, 15);
             this.label5.TabIndex = 0;
@@ -469,8 +456,8 @@
             // 
             this.label6.AutoSize = true;
             this.label6.Font = new System.Drawing.Font("Segoe UI", 9F);
-            this.label6.Location = new System.Drawing.Point(160, 19);
-            this.label6.Margin = new System.Windows.Forms.Padding(1, 0, 3, 0);
+            this.label6.Location = new System.Drawing.Point(162, 20);
+            this.label6.Margin = new System.Windows.Forms.Padding(2, 0, 5, 0);
             this.label6.Name = "label6";
             this.label6.Size = new System.Drawing.Size(50, 15);
             this.label6.TabIndex = 2;
@@ -479,10 +466,10 @@
             // tb_cooldown
             // 
             this.tb_cooldown.Font = new System.Drawing.Font("Segoe UI", 9F);
-            this.tb_cooldown.Location = new System.Drawing.Point(106, 18);
-            this.tb_cooldown.Margin = new System.Windows.Forms.Padding(6, 3, 6, 3);
+            this.tb_cooldown.Location = new System.Drawing.Point(106, 17);
+            this.tb_cooldown.Margin = new System.Windows.Forms.Padding(10, 6, 10, 6);
             this.tb_cooldown.Name = "tb_cooldown";
-            this.tb_cooldown.Size = new System.Drawing.Size(47, 23);
+            this.tb_cooldown.Size = new System.Drawing.Size(44, 23);
             this.tb_cooldown.TabIndex = 21;
             // 
             // label3
@@ -494,7 +481,7 @@
             this.label3.Location = new System.Drawing.Point(7, 9);
             this.label3.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(698, 73);
+            this.label3.Size = new System.Drawing.Size(711, 40);
             this.label3.TabIndex = 5;
             this.label3.Text = resources.GetString("label3.Text");
             this.label3.Click += new System.EventHandler(this.label3_Click);
@@ -502,10 +489,9 @@
             // btTest
             // 
             this.btTest.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.btTest.Location = new System.Drawing.Point(487, 417);
-            this.btTest.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.btTest.Location = new System.Drawing.Point(681, 444);
             this.btTest.Name = "btTest";
-            this.btTest.Size = new System.Drawing.Size(62, 30);
+            this.btTest.Size = new System.Drawing.Size(70, 30);
             this.btTest.TabIndex = 6;
             this.btTest.Text = "Test";
             this.btTest.UseVisualStyleBackColor = true;
@@ -524,11 +510,10 @@
             // 
             // Frm_LegacyActions
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(96F, 96F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi;
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Inherit;
             this.BackColor = System.Drawing.Color.WhiteSmoke;
             this.CancelButton = this.btnCancel;
-            this.ClientSize = new System.Drawing.Size(718, 454);
+            this.ClientSize = new System.Drawing.Size(914, 482);
             this.Controls.Add(this.btTest);
             this.Controls.Add(this.label3);
             this.Controls.Add(this.groupBox1);
@@ -566,26 +551,27 @@
         public System.Windows.Forms.TextBox tb_RunExternalProgramArgs;
         public System.Windows.Forms.TextBox tb_Sounds;
         public System.Windows.Forms.CheckBox cb_PlaySound;
-        private System.Windows.Forms.Label label2;
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Label label3;
         public System.Windows.Forms.TextBox tb_MQTT_Payload;
         public System.Windows.Forms.TextBox tb_MQTT_Topic;
         public System.Windows.Forms.CheckBox cb_MQTT_enabled;
-        private System.Windows.Forms.Label label4;
         private System.Windows.Forms.LinkLabel linkLabelMqttSettings;
         private System.Windows.Forms.Button btTest;
         private System.Windows.Forms.Label label7;
         public System.Windows.Forms.TextBox tb_telegram_caption;
         public System.Windows.Forms.TextBox tb_network_folder_filename;
-        private System.Windows.Forms.Label label8;
         public System.Windows.Forms.CheckBox cb_mergeannotations;
-        private System.Windows.Forms.Label label10;
         public System.Windows.Forms.TextBox tb_MQTT_Payload_cancel;
         public System.Windows.Forms.TextBox tb_MQTT_Topic_Cancel;
         private System.Windows.Forms.Label label9;
         public System.Windows.Forms.TextBox tbCancelUrl;
         private System.Windows.Forms.Label label11;
+        private System.Windows.Forms.Label label15;
+        private System.Windows.Forms.Label label14;
+        private System.Windows.Forms.Label label13;
+        private System.Windows.Forms.Label label12;
+
         public System.Windows.Forms.CheckBox cb_mask_telegram;
     }
 }

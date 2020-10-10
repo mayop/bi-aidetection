@@ -14,6 +14,7 @@ using System.Diagnostics;
 using System.Threading;
 using SixLabors.ImageSharp;
 using System.Collections.ObjectModel;
+using System.Windows.Forms;
 
 namespace AITool
 {
@@ -75,12 +76,20 @@ namespace AITool
             public int HTTPClientTimeoutSeconds = 55;    //httpclient.timeout - https://docs.microsoft.com/en-us/dotnet/api/system.net.http.httpclient.timeout?view=netcore-3.1
             public int AIDetectionTimeoutSeconds = 60;  //cancelationsource task timeout timeout
             //public int MaxDeepStackProcessTimeSeconds = 120;
-            public int RectRelevantColorAlpha = 150;  //255=solid, 127 half transparent
+            
+            public int RectRelevantColorAlpha = 150;    //255=solid, 127 half transparent
             public int RectIrrelevantColorAlpha = 150;
+            public int RectMaskedColorAlpha = 150;
+
+            public int RectBorderWidth = 2;
+
             public int RectDetectionTextSize = 12;
             public string RectDetectionTextFont = "Segoe UI Semibold";
+
             public System.Drawing.Color RectRelevantColor = System.Drawing.Color.Red;
             public System.Drawing.Color RectIrrelevantColor = System.Drawing.Color.Silver;
+            public System.Drawing.Color RectMaskedColor = System.Drawing.Color.DarkSlateGray;
+
             public string image_copy_folder = "";
 
             public string mqtt_serverandport = "mqtt:1883";
@@ -91,9 +100,14 @@ namespace AITool
 
             public bool Autoscroll_log = false;
 
-            public string DisplayPercentageFormat = "({0:0.00}%)";
+            public string DisplayPercentageFormat = "({0:0}%)";
             public string DateFormat = "dd.MM.yy, HH:mm:ss";
-            public int TimeBetweenListRefreshsMS = 3000;
+            public int TimeBetweenListRefreshsMS = 5000;
+            public bool HistoryShowMask = false;
+            public bool HistoryShowObjects = true;
+            public bool HistoryFollow = true;
+            public bool HistoryAutoRefresh = true;
+
 
         }
 
@@ -367,6 +381,30 @@ namespace AITool
                             {
                                 cam.cancel_urls_as_string = cam.trigger_urls_as_string;
                                 cam.cancel_urls = Global.Split(cam.cancel_urls_as_string, "\r\n|;,").ToArray();
+                            }
+
+                            if (cam.Action_image_copy_enabled && !string.IsNullOrWhiteSpace(cam.Action_network_folder) && cam.Action_network_folder_purge_older_than_days > 0 && Directory.Exists(cam.Action_network_folder))
+                            {
+                                Global.Log($"Cleaning out jpg files older than '{cam.Action_network_folder_purge_older_than_days}' days in '{cam.Action_network_folder}'...");
+
+                                List<FileInfo> filist = new List<FileInfo>(Global.GetFiles(cam.Action_network_folder, "*.jpg"));
+                                int deleted = 0;
+                                int errs = 0;
+                                foreach (FileInfo fi in filist)
+                                {
+                                    if ((DateTime.Now - fi.LastWriteTime).TotalDays > cam.Action_network_folder_purge_older_than_days)
+                                    {
+                                        try { fi.Delete(); deleted++; }
+                                        catch { errs++; }
+                                    }
+                                }
+                                if (errs == 0)
+                                    Global.Log($"...Deleted {deleted} out of {filist.Count} files");
+                                else
+                                    Global.Log($"...Deleted {deleted} out of {filist.Count} files with {errs} errors.");
+
+
+
                             }
 
                         }

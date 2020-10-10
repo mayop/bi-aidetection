@@ -27,11 +27,13 @@ namespace AITool
         public bool IsAnimal { get; set; } = false;
         public bool WasMasked { get; set; } = false;
         public bool WasSkipped { get; set; } = false;
+        public bool HasError { get; set; } = false;
         public bool IsFace { get; set; } = false;
         public bool IsKnownFace { get; set; } = false;
         [SQLite.PrimaryKey, SQLite.Unique]  //cannot have indexed here also - pk auto creates index I think
         public string Filename { get; set; } = "";
         public string Positions { get; set; } = "";
+        public string PredictionsJSON { get; set; } = "";
 
 
         public History()
@@ -106,13 +108,14 @@ namespace AITool
             return this;
 
         }
-        public History Create(string filename, DateTime date, string camera, string objects_and_confidence, string object_positions, bool Success)
+        public History Create(string filename, DateTime date, string camera, string objects_and_confidence, string object_positions, bool Success, string PredictionsJSON)
         {
             this.Filename = filename.Trim().ToLower();
             this.Date = date;
             this.Camera = camera.Trim();
             this.Detections = objects_and_confidence.Trim();
             this.Positions = object_positions.Trim();
+            this.PredictionsJSON = PredictionsJSON;
 
             this.Success = Success; //this.Detections.Contains("%") && !this.Detections.Contains(':');
 
@@ -162,6 +165,8 @@ namespace AITool
             this.WasMasked = tmp.Contains("mask");
 
             this.WasSkipped = tmp.Contains("skipped");
+
+            this.HasError = tmp.Contains("error");
         }
 
     }

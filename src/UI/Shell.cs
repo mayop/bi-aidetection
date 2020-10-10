@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -23,7 +24,7 @@ namespace AITool
     public partial class Shell:Form
     {
         private ThreadSafe.Datetime LastListUpdate = new ThreadSafe.Datetime(DateTime.MinValue);
-        
+
 
         private ThreadSafe.Boolean IsListUpdating = new ThreadSafe.Boolean(false);
 
@@ -32,6 +33,9 @@ namespace AITool
 
         //Instantiate a Singleton of the Semaphore with a value of 1. This means that only 1 thread can be granted access at a time.
         public static SemaphoreSlim Semaphore_List_Updating = new SemaphoreSlim(1, 1);
+
+        //public static ConcurrentQueue<History> AddedHistoryItems = new ConcurrentQueue<History>();
+        //public static ConcurrentQueue<History> DeletedHistoryItems = new ConcurrentQueue<History>();
 
 
         public Shell()
@@ -56,7 +60,6 @@ namespace AITool
             //HISTORY TAB
 
             Global_GUI.ConfigureFOLV(folv_history, typeof(History), new Font("Segoe UI", (float)9.75, FontStyle.Regular), HistoryImageList, "Date", SortOrder.Descending);
-
 
             folv_history.EmptyListMsg = "Initializing database";
 
@@ -89,7 +92,7 @@ namespace AITool
             //LoadFromCSV(); not neccessary because below, comboBox_filter_camera.SelectedIndex will call LoadFromCSV()
 
             //splitContainer1.Panel2Collapsed = true; //collapse filter panel under left list
-            comboBox_filter_camera.Items.Add("All Cameras"); //add "all cameras" entry in filter dropdown combobox
+            //comboBox_filter_camera.Items.Add("All Cameras"); //add "all cameras" entry in filter dropdown combobox
             comboBox_filter_camera.SelectedIndex = comboBox_filter_camera.FindStringExact("All Cameras"); //select all cameras entry
 
             //---------------------------------------------------------------------------
@@ -143,21 +146,74 @@ namespace AITool
                 LoadDeepStackTab(true);
             }
 
+            //---------------------------------------------------------------------------
+            // finish up
+            cb_showMask.Checked = AppSettings.Settings.HistoryShowMask;
+            cb_showObjects.Checked = AppSettings.Settings.HistoryShowObjects;
+            cb_follow.Checked = AppSettings.Settings.HistoryFollow;
+            automaticallyRefreshToolStripMenuItem.Checked = AppSettings.Settings.HistoryAutoRefresh;
 
-            HistoryUpdateListTimer.Enabled = true;
+
             HistoryUpdateListTimer.Interval = AppSettings.Settings.TimeBetweenListRefreshsMS;
-            HistoryUpdateListTimer.Start();
 
+            if (AppSettings.Settings.HistoryAutoRefresh)
+            {
+                HistoryUpdateListTimer.Enabled = true;
+                HistoryUpdateListTimer.Start();
+            }
+            else
+            {
+                HistoryUpdateListTimer.Enabled = false;
+                HistoryUpdateListTimer.Stop();
+            }
 
-            LoadHistoryAsync(true, cb_follow.Checked);
-
-            //this.Opacity = 1;
+            LoadHistoryAsync(true, AppSettings.Settings.HistoryFollow);
 
             Log("APP START complete.");
         }
 
 
+        async Task UpdateHistoryAddedRemoved()
+        {
+            //this should be a quicker list update
+            if (AppSettings.Settings.HistoryAutoRefresh &&
+                !this.IsListUpdating.ReadFullFence() &&
+                tabControl1.SelectedIndex == 2 &&
+                this.Visible &&
+                !(this.WindowState == FormWindowState.Minimized) &&
+                (DateTime.Now - this.LastListUpdate.Read()).TotalMilliseconds >= AppSettings.Settings.TimeBetweenListRefreshsMS &&
+                await HistoryDB.HasUpdates())
+            {
+                this.IsListUpdating.WriteFullFence(true);
 
+                //Global.Log($"Debug:  Updating list...({AddedHistoryItems.Count} added, {DeletedHistoryItems.Count} deleted)");
+
+                //UpdateToolstrip("Updating list...");
+
+                List<History> added = HistoryDB.GetRecentlyAdded();
+
+                if (added.Count > 0)
+                    Global_GUI.UpdateFOLV_AddObjects(folv_history, added.ToArray(), AppSettings.Settings.HistoryFollow);
+
+                List<History> removed = HistoryDB.GetRecentlyDeleted();
+
+                if (removed.Count > 0)
+                    Global_GUI.UpdateFOLV_DeleteObjects(folv_history, removed.ToArray(), AppSettings.Settings.HistoryFollow);
+
+
+                this.LastListUpdate.Write(DateTime.Now);
+
+                this.IsListUpdating.WriteFullFence(false);
+
+                //UpdateToolstrip("");
+
+            }
+            else
+            {
+                //Global.Log($"Debug: List not updated - Refresh={AppSettings.Settings.HistoryAutoRefresh}, Visible={tabControl1.SelectedIndex == 2 && this.Visible && !(this.WindowState == FormWindowState.Minimized)}, IsListUpdating={this.IsListUpdating.ReadFullFence()}, LastListUpdateMS={(DateTime.Now - this.LastListUpdate.Read()).TotalMilliseconds}");
+            }
+
+        }
 
 
         void EventMessage(ClsMessage msg)
@@ -169,25 +225,32 @@ namespace AITool
             }
             else if (msg.MessageType == MessageType.CreateHistoryItem)
             {
+                JsonSerializerSettings jset = new JsonSerializerSettings { };
+                jset.TypeNameHandling = TypeNameHandling.All;
+                jset.PreserveReferencesHandling = PreserveReferencesHandling.Objects;
+                History hist = JsonConvert.DeserializeObject<History>(msg.JSONPayload, jset);
+
                 if (!HistoryDB.ReadOnly)  //otherwise another service is doing all the updating
                 {
-                    JsonSerializerSettings jset = new JsonSerializerSettings { };
-                    jset.TypeNameHandling = TypeNameHandling.All;
-                    jset.PreserveReferencesHandling = PreserveReferencesHandling.Objects;
-                    History hist = JsonConvert.DeserializeObject<History>(msg.JSONPayload, jset);
-                    HistoryDB.InsertHistoryItem(hist);
-                    UpdateToolstrip();
+                    HistoryDB.InsertHistoryQueue(hist);
                 }
+
+                //UpdateHistoryAddedRemoved();
+
+                UpdateToolstrip();
             }
             else if (msg.MessageType == MessageType.DeleteHistoryItem)
             {
-                
+
                 if (!HistoryDB.ReadOnly)  //assume service or other instance will be handling 
                 {
-                    //Log("Deleting missing file from database: " + msg.Description);
-                    HistoryDB.DeleteHistoryItem(msg.Description);
-                    UpdateToolstrip();
+                    HistoryDB.DeleteHistoryQueue(msg.Description);
                 }
+
+                //UpdateHistoryAddedRemoved();
+
+                UpdateToolstrip();
+
             }
             else if (msg.MessageType == MessageType.ImageAddedToQueue)
             {
@@ -198,7 +261,7 @@ namespace AITool
             {
                 if (toolStripProgressBar1.Maximum != msg.MaxVal)
                     toolStripProgressBar1.Maximum = msg.MaxVal;
-                
+
                 toolStripProgressBar1.Value = msg.CurVal;
 
                 if (toolStripProgressBar1.Style != ProgressBarStyle.Continuous)
@@ -271,7 +334,7 @@ namespace AITool
         //save how many times an error happened
         public void IncrementErrorCounter(string text, string ModName)
         {
-            errors.Add(text,DetailType.Unknown,DateTime.Now,ModName);
+            errors.Add(text, DetailType.Unknown, DateTime.Now, ModName);
 
             try
             {
@@ -301,7 +364,7 @@ namespace AITool
 
             if (IsClosing.ReadFullFence())
                 return;
-            
+
             try
             {
 
@@ -351,7 +414,7 @@ namespace AITool
                 bool HasInfo = (text.IndexOf("info:", StringComparison.InvariantCultureIgnoreCase) > -1);
                 bool HasDebug = (text.IndexOf("debug:", StringComparison.InvariantCultureIgnoreCase) > -1);
                 bool IsDeepStackMsg = (memberName.IndexOf("deepstack", StringComparison.InvariantCultureIgnoreCase) > -1) || (text.IndexOf("deepstack", StringComparison.InvariantCultureIgnoreCase) > -1) || (ModName.IndexOf("deepstack", StringComparison.InvariantCultureIgnoreCase) > -1);
-                
+
                 string RTFText = "";
 
                 //set the color for RTF text window:
@@ -418,7 +481,7 @@ namespace AITool
                 //increment error counter
                 if (HasError || HasWarning)
                 {
-                    IncrementErrorCounter(text,ModName);
+                    IncrementErrorCounter(text, ModName);
                 }
 
             }
@@ -456,7 +519,7 @@ namespace AITool
             this.Show();
             this.WindowState = FormWindowState.Normal;
             notifyIcon.Visible = false;
-            await LoadHistoryAsync(true, cb_follow.Checked);
+            await LoadHistoryAsync(true, AppSettings.Settings.HistoryFollow);
         }
 
         //open Log when clicking or error message
@@ -468,16 +531,16 @@ namespace AITool
 
         private void ShowErrors()
         {
-            
+
             using (Frm_Errors frm = new Frm_Errors())
             {
                 frm.errors = errors.Values;
 
                 if (frm.ShowDialog() == DialogResult.OK)
                 {
-                        lbl_errors.Text = "";
-                        errors.Clear();
-                        UpdateToolstrip();
+                    lbl_errors.Text = "";
+                    errors.Clear();
+                    UpdateToolstrip();
                 }
             }
         }
@@ -520,7 +583,7 @@ namespace AITool
             }
             else if (tabControl1.SelectedIndex == 2)
             {
-                await LoadHistoryAsync(true, cb_follow.Checked);
+                await LoadHistoryAsync(true, AppSettings.Settings.HistoryFollow);
             }
             else if (tabControl1.SelectedTab == tabControl1.TabPages["tabDeepStack"])
             {
@@ -551,7 +614,7 @@ namespace AITool
         //other camera in combobox selected, display according PieChart
         private void comboBox1_SelectedIndexChanged_1(object sender, EventArgs e)
         {
-           
+
         }
 
         //update pie chart
@@ -828,6 +891,11 @@ namespace AITool
                         foreach (string detection in detections)
                         {
                             int x_value = Global.GetNumberInt(detection);  // gets a number anywhere in the string
+
+                            //fix temp bug from earlier where whole number percentages were multiplied by 100 when they shouldnt have been.
+                            if (x_value > 500)
+                                x_value = x_value / 100;
+
                             if (x_value > 0)
                             {
                                 //example: -> "person (41%)"
@@ -888,22 +956,17 @@ namespace AITool
         {
             if (cb_showMask.Checked == true) //show overlay
             {
-                Log("Show mask toggled.");
+                //Log("Show mask toggled.");
 
                 if (folv_history.SelectedObjects != null && folv_history.SelectedObjects.Count > 0)
                 {
                     History hist = (History)folv_history.SelectedObjects[0];
 
-                    if (System.IO.File.Exists("./cameras/" + hist.Camera + ".png")) //check if privacy mask file exists
+                    string imagefile = AITOOL.GetMaskFile(hist.Camera);
+
+                    if (File.Exists(imagefile))
                     {
-                        using (var img = new Bitmap("./cameras/" + hist.Camera + ".png"))
-                        {
-                            pictureBox1.Image = new Bitmap(img); //load mask as overlay
-                        }
-                    }
-                    else if (System.IO.File.Exists("./cameras/" + hist.Camera + ".bmp")) //check if privacy mask file exists
-                    {
-                        using (var img = new Bitmap("./cameras/" + hist.Camera + ".bmp"))
+                        using (var img = new Bitmap(imagefile))
                         {
                             pictureBox1.Image = new Bitmap(img); //load mask as overlay
                         }
@@ -924,12 +987,30 @@ namespace AITool
         }
 
         //show rectangle overlay
-        private void showObject(PaintEventArgs e, System.Drawing.Color color, int _xmin, int _ymin, int _xmax, int _ymax, string text)
+        private void showObject(PaintEventArgs e, int _xmin, int _ymin, int _xmax, int _ymax, string text, ResultType result)
         {
             try
             {
                 if (folv_history.SelectedObjects != null && folv_history.SelectedObjects.Count > 0 && (pictureBox1 != null) && (pictureBox1.BackgroundImage != null))
                 {
+
+                    System.Drawing.Color color = new System.Drawing.Color();
+                    int BorderWidth = AppSettings.Settings.RectBorderWidth
+;
+
+                    if (result == ResultType.Relevant)
+                    {
+                        color = System.Drawing.Color.FromArgb(AppSettings.Settings.RectRelevantColorAlpha, AppSettings.Settings.RectRelevantColor);
+                    }
+                    else if (result == ResultType.DynamicMasked || result == ResultType.ImageMasked || result == ResultType.StaticMasked)
+                    {
+                        color = System.Drawing.Color.FromArgb(AppSettings.Settings.RectMaskedColorAlpha, AppSettings.Settings.RectMaskedColor);
+                    }
+                    else
+                    {
+                        color = System.Drawing.Color.FromArgb(AppSettings.Settings.RectIrrelevantColorAlpha, AppSettings.Settings.RectIrrelevantColor);
+                    }
+
                     //1. get the padding between the image and the picturebox border
 
                     //get dimensions of the image and the picturebox
@@ -967,19 +1048,21 @@ namespace AITool
 
                     //3. paint rectangle
                     System.Drawing.Rectangle rect = new System.Drawing.Rectangle(xmin, ymin, xmax - xmin, ymax - ymin);
-                    using (Pen pen = new Pen(color, 2))
+                    using (Pen pen = new Pen(color, BorderWidth))
                     {
                         e.Graphics.DrawRectangle(pen, rect); //draw rectangle
                     }
 
-                    //object name text below rectangle
-                    rect = new System.Drawing.Rectangle(xmin - 1, ymax, (int)boxWidth, (int)boxHeight); //sets bounding box for drawn text
+                    //we need this since people can change the border width in the json file
+                    int halfbrd = BorderWidth / 2;
 
+                    //object name text below rectangle
+                    rect = new System.Drawing.Rectangle(xmin - halfbrd, ymax + halfbrd, (int)boxWidth, (int)boxHeight); //sets bounding box for drawn text
 
                     Brush brush = new SolidBrush(color); //sets background rectangle color
 
                     System.Drawing.SizeF size = e.Graphics.MeasureString(text, new Font(AppSettings.Settings.RectDetectionTextFont, AppSettings.Settings.RectDetectionTextSize)); //finds size of text to draw the background rectangle
-                    e.Graphics.FillRectangle(brush, xmin - 1, ymax, size.Width, size.Height); //draw grey background rectangle for detection text
+                    e.Graphics.FillRectangle(brush, xmin - halfbrd, ymax + halfbrd, size.Width, size.Height); //draw grey background rectangle for detection text
                     e.Graphics.DrawString(text, new Font(AppSettings.Settings.RectDetectionTextFont, AppSettings.Settings.RectDetectionTextSize), Brushes.Black, rect); //draw detection text
 
 
@@ -998,7 +1081,7 @@ namespace AITool
         //TODO: refactor detections
         private void pictureBox1_Paint(object sender, PaintEventArgs e)
         {
-            if (cb_showObjects.Checked && folv_history.SelectedObjects != null && folv_history.SelectedObjects.Count > 0) //if checkbox button is enabled
+            if (AppSettings.Settings.HistoryShowObjects && folv_history.SelectedObjects != null && folv_history.SelectedObjects.Count > 0) //if checkbox button is enabled
             {
                 //Log("Loading object rectangles...");
                 History hist = (History)folv_history.SelectedObjects[0];
@@ -1006,59 +1089,87 @@ namespace AITool
                 string positions = hist.Positions;
                 string detections = hist.Detections;
 
+                int XOffset = 0;
+                int YOffset = 0;
+
+                Camera cam = AITOOL.GetCamera(hist.Camera);
+                if (cam != null)
+                {
+                    //apply offset if one is defined by user in json file
+                    XOffset = cam.XOffset;
+                    YOffset = cam.YOffset;
+                }
+
                 try
                 {
-                    List<string> positionssArray = Global.Split(positions, ";");//creates array of detected objects, used for adding text overlay
 
-                    int countr = positionssArray.Count();
-
-                    System.Drawing.Color color = new System.Drawing.Color();
-
-                    if (detections.Contains("irrelevant") || detections.Contains("masked") || detections.Contains("confidence"))
+                    if (!string.IsNullOrEmpty(hist.PredictionsJSON))
                     {
-                        color = System.Drawing.Color.FromArgb(AppSettings.Settings.RectIrrelevantColorAlpha, AppSettings.Settings.RectIrrelevantColor);
-                        detections = detections.Split(':')[1]; //removes the "1x masked, 3x irrelevant:" before the actual detection, otherwise this would be displayed in the detection tags
+                        List<ClsPrediction> predictions = new List<ClsPrediction>();
+
+                        predictions = Global.SetJSONString<List<ClsPrediction>>(hist.PredictionsJSON);
+
+                        foreach (var pred in predictions)
+                        {
+
+                            showObject(e, pred.xmin + XOffset, pred.ymin + YOffset, pred.xmax, pred.ymax, pred.ToString(), pred.Result); //call rectangle drawing method, calls appropriate detection text
+
+                        }
+
                     }
                     else
                     {
-                        color = System.Drawing.Color.FromArgb(AppSettings.Settings.RectRelevantColorAlpha, AppSettings.Settings.RectRelevantColor);
+                        List<string> positionssArray = Global.Split(positions, ";");//creates array of detected objects, used for adding text overlay
+
+                        int countr = positionssArray.Count();
+
+                        ResultType result = ResultType.Unknown;
+
+                        if (detections.ToLower().Contains("irrelevant") || detections.ToLower().Contains("masked") || detections.ToLower().Contains("confidence"))
+                        {
+                            detections = detections.Split(':')[1]; //removes the "1x masked, 3x irrelevant:" before the actual detection, otherwise this would be displayed in the detection tags
+                            if (detections.Contains("masked"))
+                            {
+                                result = ResultType.ImageMasked;
+                            }
+                            else
+                            {
+                                result = ResultType.Unknown;
+                            }
+                        }
+                        else
+                        {
+                            result = ResultType.Relevant;
+                        }
+
+                        List<string> detectionsArray = Global.Split(detections, ";");//creates array of detected objects, used for adding text overlay
+
+                        if (cam != null)
+                        {
+                            //apply offset if one is defined by user in json file
+                            XOffset = cam.XOffset;
+                            YOffset = cam.YOffset;
+                        }
+
+                        //display a rectangle around each relevant object
+                        for (int i = 0; i < countr; i++)
+                        {
+
+                            //load 'xmin,ymin,xmax,ymax' from third column into a string
+                            List<string> positionsplt = Global.Split(positionssArray[i], ",");
+
+                            //store xmin, ymin, xmax, ymax in separate variables
+                            Int32.TryParse(positionsplt[0], out int xmin);
+                            Int32.TryParse(positionsplt[1], out int ymin);
+                            Int32.TryParse(positionsplt[2], out int xmax);
+                            Int32.TryParse(positionsplt[3], out int ymax);
+
+
+                            showObject(e, xmin + XOffset, ymin + YOffset, xmax, ymax, detectionsArray[i], result); //call rectangle drawing method, calls appropriate detection text
+
+                        }
+
                     }
-
-                    List<string> detectionsArray = Global.Split(detections, ";");//creates array of detected objects, used for adding text overlay
-
-
-                    int XOffset = 0;
-                    int YOffset = 0;
-
-                    Camera cam = AITOOL.GetCamera(hist.Camera);
-                    if (cam != null)
-                    {
-                        //apply offset if one is defined by user in json file
-                        XOffset = cam.XOffset;
-                        YOffset = cam.YOffset;
-                    }
-
-                    //display a rectangle around each relevant object
-                    for (int i = 0; i < countr; i++)
-                    {
-
-                        //load 'xmin,ymin,xmax,ymax' from third column into a string
-                        List<string> positionsplt = Global.Split(positionssArray[i], ",");
-
-                        //store xmin, ymin, xmax, ymax in separate variables
-                        Int32.TryParse(positionsplt[0], out int xmin);
-                        Int32.TryParse(positionsplt[1], out int ymin);
-                        Int32.TryParse(positionsplt[2], out int xmax);
-                        Int32.TryParse(positionsplt[3], out int ymax);
-
-
-                        showObject(e, color, xmin + XOffset, ymin + YOffset, xmax, ymax, detectionsArray[i]); //call rectangle drawing method, calls appropriate detection text
-
-                    }
-
-                    //Log($"Debug: Positions (subitem4) ='{positions}', Detections (subitem3) ='{detections}'");
-                    //Debug: Positions (subitem4) ='', Detections (subitem3) ='false alert'
-                    //Debug: Positions (subitem4) ='952,184,1069,366;', Detections (subitem3) ='person (66%);'
 
 
                 }
@@ -1072,7 +1183,7 @@ namespace AITool
         }
 
         // add new entry in left list
-        
+
 
         private void UpdateToolstrip(string Message = "")
         {
@@ -1086,6 +1197,7 @@ namespace AITool
                 int alerts = 0;
                 int irrelevantalerts = 0;
                 int falsealerts = 0;
+                int newskipped = 0;
                 int skipped = 0;
                 foreach (Camera cam in AppSettings.Settings.CameraList)
                 {
@@ -1093,6 +1205,7 @@ namespace AITool
                     irrelevantalerts += cam.stats_irrelevant_alerts;
                     falsealerts += cam.stats_false_alerts;
                     skipped += cam.stats_skipped_images;
+                    newskipped += cam.stats_skipped_images_session;
                 }
 
                 Global_GUI.InvokeIFRequired(toolStripStatusLabelHistoryItems.GetCurrentParent(), () =>
@@ -1111,11 +1224,11 @@ namespace AITool
                     if (HistoryDB != null && HistoryDB.AddedCount.ReadFullFence() > 0)
                         hpm = HistoryDB.AddedCount.ReadFullFence() / (DateTime.Now - HistoryDB.InitializeTime).TotalMinutes;
 
-                    toolStripStatusLabelHistoryItems.Text = $"{items} history items ({hpm.ToString("###0.0")} per minute) | {removed} removed ";
+                    toolStripStatusLabelHistoryItems.Text = $"{items} history items ({hpm.ToString("###0.0")}/MIN) | {removed} removed";
 
-                    toolStripStatusLabel1.Text = $"| {alerts} Alerts | {irrelevantalerts} Irrelevant Alerts | {falsealerts} False Alerts | {skipped} Skipped Images | {ImageProcessQueue.Count} in Queue";
+                    toolStripStatusLabel1.Text = $"| {alerts} Alerts | {irrelevantalerts} Irrelevant | {falsealerts} False | {skipped} Skipped ({newskipped} new) | {ImageProcessQueue.Count} Queued";
 
-                    toolStripStatusErrors.Text = $"| {errors.Values.Count} New Errors";
+                    toolStripStatusErrors.Text = $"| {errors.Values.Count} Errors";
 
                     if (!string.IsNullOrEmpty(Message))
                     {
@@ -1125,7 +1238,7 @@ namespace AITool
                     {
                         toolStripStatusLabelInfo.Text = "Working...";
                     }
-                    else if (toolStripProgressBar1.Value == 0) 
+                    else if (toolStripProgressBar1.Value == 0)
                     {
                         toolStripStatusLabelInfo.Text = "Idle.";
                     }
@@ -1190,7 +1303,7 @@ namespace AITool
                     }
                     await Task.Delay(50);
 
-                } while (sw.ElapsedMilliseconds < 20000);
+                } while (sw.ElapsedMilliseconds < 30000);
 
                 if (displayed)
                     Log($"...Waited {sw.ElapsedMilliseconds}ms for the database to finish initializing/cleaning.");
@@ -1198,6 +1311,7 @@ namespace AITool
                 //Dont update list unless we are on the tab and it is visible for performance reasons.
                 if (FilterChanged || folv_history.Items.Count == 0 || (tabControl1.SelectedIndex == 2 && this.Visible && !(this.WindowState == FormWindowState.Minimized)))
                 {
+
 
                     if (this.Visible && !(this.WindowState == FormWindowState.Minimized))
                         this.UpdateToolstrip("Updating History List...");
@@ -1232,6 +1346,7 @@ namespace AITool
                             });
 
                         }
+
 
                     }
                     else
@@ -1277,6 +1392,8 @@ namespace AITool
             else if (hist.Success && cb_filter_nosuccess.Checked)
                 ret = false;
             else if (!hist.WasSkipped && cb_filter_skipped.Checked)
+                ret = false;
+            else if (!hist.WasMasked && cb_filter_masked.Checked)
                 ret = false;
             else if (!hist.IsPerson && cb_filter_person.Checked)
                 ret = false;
@@ -1386,54 +1503,26 @@ namespace AITool
         }
 
         //event: show history list filters button clicked
-        private void cb_showFilters_CheckedChanged(object sender, EventArgs e)
-        {
-            if (cb_showFilters.Checked)
-            {
-                cb_showFilters.Text = "˅ Filter";
-                splitContainer1.Panel2Collapsed = false;
-            }
-            else
-            {
-                cb_showFilters.Text = "˄ Filter";
-                splitContainer1.Panel2Collapsed = true;
-            }
+        //private void cb_showFilters_CheckedChanged(object sender, EventArgs e)
+        //{
+        //    if (cb_showFilters.Checked)
+        //    {
+        //        cb_showFilters.Text = "˅ Filter";
+        //        splitContainer1.Panel2Collapsed = false;
+        //    }
+        //    else
+        //    {
+        //        cb_showFilters.Text = "˄ Filter";
+        //        splitContainer1.Panel2Collapsed = true;
+        //    }
 
-            ResizeListViews();
+        //    ResizeListViews();
 
-        }
+        //}
 
         //event: filter "only revelant alerts" checked or unchecked
-        private async void cb_filter_success_CheckedChanged(object sender, EventArgs e)
-        {
-            await LoadHistoryAsync(true, cb_follow.Checked).ConfigureAwait(false);
-        }
 
-        //event: filter "only alerts with people" checked or unchecked
-        private async void cb_filter_person_CheckedChanged(object sender, EventArgs e)
-        {
-            await LoadHistoryAsync(true, cb_follow.Checked).ConfigureAwait(false);
-        }
 
-        //event: filter "only alerts with people" checked or unchecked
-        private async void cb_filter_vehicle_CheckedChanged(object sender, EventArgs e)
-        {
-            await LoadHistoryAsync(true, cb_follow.Checked).ConfigureAwait(false);
-        }
-
-        //event: filter "only alerts with animals" checked or unchecked
-        private async void cb_filter_animal_CheckedChanged(object sender, EventArgs e)
-        {
-            await LoadHistoryAsync(true, cb_follow.Checked).ConfigureAwait(false);
-        }
-
-        //event: filter "only false / irrevelant alerts" checked or unchecked
-        private async void cb_filter_nosuccess_CheckedChanged(object sender, EventArgs e)
-        {
-            await LoadHistoryAsync(true, cb_follow.Checked).ConfigureAwait(false);
-        }
-
-        
 
         //----------------------------------------------------------------------------------------------------------
         //CAMERAS TAB
@@ -2069,6 +2158,8 @@ namespace AITool
         //ask before closing AI Tool to prevent accidentally closing
         private void Shell_FormClosing(object sender, FormClosingEventArgs e)
         {
+            IsClosing.WriteFullFence(true);
+
             if (AppSettings.Settings.close_instantly <= 0) //if it's eigther enabled or not set  -1 = not set | 0 = ask for confirmation | 1 = don't ask
             {
                 using (var form = new InputForm($"Stop and close AI Tool?", "AI Tool", false))
@@ -2100,9 +2191,9 @@ namespace AITool
 
             AppSettings.Save();  //save settings in any case
 
-            IsClosing.WriteFullFence(true);
             if (!AppSettings.AlreadyRunning)
                 Global.SaveSetting("LastShutdownState", "graceful shutdown");
+
 
 
         }
@@ -2470,10 +2561,16 @@ namespace AITool
         private void btnDetails_Click(object sender, EventArgs e)
         {
 
+            ShowMaskDetailsDialog(list2.SelectedItems[0].Text);
+
+        }
+
+        private void ShowMaskDetailsDialog(string cameraname)
+        {
             using (Frm_DynamicMaskDetails frm = new Frm_DynamicMaskDetails())
             {
 
-                Camera CurCam = GetCamera(list2.SelectedItems[0].Text);
+                Camera CurCam = GetCamera(cameraname);
                 frm.cam = CurCam;
 
                 frm.ShowDialog();
@@ -2482,8 +2579,8 @@ namespace AITool
 
             }
 
-
         }
+
 
         private void QueueLblTmr_Tick(object sender, EventArgs e)
         {
@@ -2501,9 +2598,14 @@ namespace AITool
 
         private void btnCustomMask_Click(object sender, EventArgs e)
         {
+            ShowEditImageMaskDialog(list2.SelectedItems[0].Text);
+        }
+
+        private void ShowEditImageMaskDialog(string cameraname)
+        {
             using (Frm_CustomMasking frm = new Frm_CustomMasking())
             {
-                Camera cam = AITOOL.GetCamera(list2.SelectedItems[0].Text);
+                Camera cam = AITOOL.GetCamera(cameraname);
                 frm.cam = cam;
 
                 if (frm.ShowDialog() == DialogResult.OK)
@@ -2513,7 +2615,6 @@ namespace AITool
             }
 
         }
-
 
         private void btnActions_Click(object sender, EventArgs e)
         {
@@ -2645,6 +2746,7 @@ namespace AITool
                 if (folv_history.SelectedObjects != null && folv_history.SelectedObjects.Count > 0)
                 {
                     History hist = (History)folv_history.SelectedObjects[0];
+
                     if (!String.IsNullOrEmpty(hist.Filename) && hist.Filename.Contains("\\") && File.Exists(hist.Filename))
                     {
                         using (var img = new Bitmap(hist.Filename))
@@ -2657,10 +2759,31 @@ namespace AITool
                     else
                     {
                         Log("Removing missing file from database: " + hist.Filename);
-                        HistoryDB.DeleteHistoryItem(hist.Filename);
+                        HistoryDB.DeleteHistoryQueue(hist.Filename);
                         lbl_objects.Text = "Image not found";
                         pictureBox1.BackgroundImage = null;
                     }
+
+                    if (!string.IsNullOrEmpty(hist.PredictionsJSON))
+                    {
+                        toolStripButtonDetails.Enabled = true;
+                    }
+                    else
+                    {
+                        toolStripButtonDetails.Enabled = false;
+                    }
+
+                    toolStripButtonEditImageMask.Enabled = true;
+                    toolStripButtonMaskDetails.Enabled = true;
+
+                }
+                else
+                {
+                    lbl_objects.Text = "No selection";
+                    pictureBox1.BackgroundImage = null;
+                    toolStripButtonDetails.Enabled = false;
+                    toolStripButtonEditImageMask.Enabled = false;
+                    toolStripButtonMaskDetails.Enabled = false;
                 }
 
             }
@@ -2686,16 +2809,25 @@ namespace AITool
                 History hist = (History)e.Model;
 
                 // If SPI IsNot Nothing Then
-                if (hist.Success)
+                if (hist.Success && !hist.HasError)
                     e.Item.ForeColor = Color.Green;
+                else if (hist.HasError)
+                {
+                    e.Item.ForeColor = Color.Black;
+                    e.Item.BackColor = Color.Red;
+                }
                 else if (hist.WasSkipped)
                     e.Item.ForeColor = Color.Red;
+                else if (hist.WasMasked)
+                {
+                    e.Item.ForeColor = Color.Black;
+                    e.Item.BackColor = Color.LightGray;
+                }
                 else if (!hist.Success && hist.Detections.ToLower().Contains("false alert"))
                     e.Item.ForeColor = Color.Gray;
                 else
                     e.Item.ForeColor = Color.Black;
             }
-
 
 
             catch (Exception ex)
@@ -2745,7 +2877,7 @@ namespace AITool
 
         private async void cb_filter_skipped_CheckedChanged(object sender, EventArgs e)
         {
-            await LoadHistoryAsync(true, cb_follow.Checked).ConfigureAwait(false);
+            await LoadHistoryAsync(true, AppSettings.Settings.HistoryFollow).ConfigureAwait(false);
         }
 
         private async void HistoryUpdateListTimer_Tick(object sender, EventArgs e)
@@ -2754,12 +2886,9 @@ namespace AITool
                 return;
 
             if (!AppSettings.AlreadyRunning)
-               Global.SaveSetting("LastShutdownState", $"checkpoint: HistoryUpdateTimer: {DateTime.Now}");
+                Global.SaveSetting("LastShutdownState", $"checkpoint: HistoryUpdateTimer: {DateTime.Now}");
 
-            if (!this.IsListUpdating.ReadFullFence() && (DateTime.Now - this.LastListUpdate.Read()).TotalSeconds >= 3)
-                await LoadHistoryAsync(false, cb_follow.Checked);
-            //else
-                //Log("Skipped");
+            await UpdateHistoryAddedRemoved();
 
         }
 
@@ -2775,12 +2904,12 @@ namespace AITool
 
         private async void cb_follow_CheckedChanged(object sender, EventArgs e)
         {
-            await LoadHistoryAsync(true, cb_follow.Checked).ConfigureAwait(false);
+            await LoadHistoryAsync(true, AppSettings.Settings.HistoryFollow).ConfigureAwait(false);
         }
 
         private async void comboBox_filter_camera_SelectionChangeCommitted(object sender, EventArgs e)
         {
-            await LoadHistoryAsync(true, cb_follow.Checked).ConfigureAwait(false);
+            await LoadHistoryAsync(true, AppSettings.Settings.HistoryFollow).ConfigureAwait(false);
         }
 
         private void comboBox1_SelectionChangeCommitted(object sender, EventArgs e)
@@ -2791,29 +2920,251 @@ namespace AITool
                 UpdatePieChart(); UpdateTimeline(); UpdateConfidenceChart();
             }
         }
-    }
+
+        private void Shell_DpiChanged(object sender, DpiChangedEventArgs e)
+        {
+            //Controls get really messed up when DPI changes when app is open.   Just trying to figure out the right way to handle....
+            Log($"[System DPI Changed from {e.DeviceDpiOld} to {e.DeviceDpiNew}]");
+
+            //we need to figure out how to force a full resize of all components - something is preventing that from happening
+            //automatically upon DPI change.   A suspicion is the custom DBLayoutPanel, but its a clusterfuck to try to 
+            //revert back to TableLayoutPanel for everything.
+
+        }
+
+        private async void cb_filter_success_Click(object sender, EventArgs e)
+        {
+            await LoadHistoryAsync(true, AppSettings.Settings.HistoryFollow).ConfigureAwait(false);
+        }
+
+        private async void cb_filter_nosuccess_Click(object sender, EventArgs e)
+        {
+            await LoadHistoryAsync(true, AppSettings.Settings.HistoryFollow).ConfigureAwait(false);
+        }
+
+        private async void cb_filter_person_Click(object sender, EventArgs e)
+        {
+            await LoadHistoryAsync(true, AppSettings.Settings.HistoryFollow).ConfigureAwait(false);
+        }
+
+        private async void cb_filter_animal_Click(object sender, EventArgs e)
+        {
+            await LoadHistoryAsync(true, AppSettings.Settings.HistoryFollow).ConfigureAwait(false);
+        }
+
+        private async void cb_filter_vehicle_Click(object sender, EventArgs e)
+        {
+            await LoadHistoryAsync(true, AppSettings.Settings.HistoryFollow).ConfigureAwait(false);
+        }
+
+        private async void cb_filter_skipped_Click(object sender, EventArgs e)
+        {
+            await LoadHistoryAsync(true, AppSettings.Settings.HistoryFollow).ConfigureAwait(false);
+        }
+
+        private async void cb_filter_masked_Click(object sender, EventArgs e)
+        {
+            await LoadHistoryAsync(true, AppSettings.Settings.HistoryFollow).ConfigureAwait(false);
+        }
+
+        private async void comboBox_filter_camera_DropDownClosed(object sender, EventArgs e)
+        {
+            await LoadHistoryAsync(true, AppSettings.Settings.HistoryFollow).ConfigureAwait(false);
+        }
+
+        private void cb_showMask_Click(object sender, EventArgs e)
+        {
+            AppSettings.Settings.HistoryShowMask = cb_showMask.Checked;
+            AppSettings.Save();
+            showHideMask();
+        }
+
+        private void cb_showObjects_CheckedChanged(object sender, EventArgs e)
+        {
+            if (folv_history.SelectedObjects != null && folv_history.SelectedObjects.Count > 0)
+            {
+                pictureBox1.Refresh();
+            }
+        }
+
+        private void automaticallyRefreshToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (automaticallyRefreshToolStripMenuItem.Checked)
+            {
+                HistoryUpdateListTimer.Enabled = true;
+                HistoryUpdateListTimer.Start();
+            }
+            else
+            {
+                HistoryUpdateListTimer.Enabled = false;
+                HistoryUpdateListTimer.Stop();
+            }
+
+            AppSettings.Settings.HistoryAutoRefresh = automaticallyRefreshToolStripMenuItem.Checked;
+            AppSettings.Save();
+
+        }
+
+        private void cb_showObjects_Click(object sender, EventArgs e)
+        {
+            AppSettings.Settings.HistoryShowObjects = cb_showObjects.Checked;
+            AppSettings.Save();
+        }
+
+        private void cb_follow_Click(object sender, EventArgs e)
+        {
+            AppSettings.Settings.HistoryFollow = cb_follow.Checked;
+            AppSettings.Save();
+        }
+
+        private void toolStripButtonDetails_Click(object sender, EventArgs e)
+        {
+            ViewPredictionDetails();
+        }
+
+        private void ViewPredictionDetails()
+        {
+            try
+            {
+                List<ClsPrediction> allpredictions = new List<ClsPrediction>();
+
+                foreach (History hist in folv_history.SelectedObjects)
+                {
+                    List<ClsPrediction> predictions = Global.SetJSONString<List<ClsPrediction>>(hist.PredictionsJSON);
+
+                    if (predictions != null && predictions.Count > 0)
+                    {
+                        allpredictions.AddRange(predictions);
+                    }
+                    else
+                    {
+                        Log($"Info: No predictions for image {hist.Filename}: Json='{hist.PredictionsJSON}'");
+                    }
+
+                }
+
+                Frm_ObjectDetail frm = new Frm_ObjectDetail();
+                frm.PredictionObjectDetail = allpredictions;
+                frm.Show();
+
+            }
+            catch (Exception ex)
+            {
+
+                Log("Error: " + Global.ExMsg(ex));
+            }
+        }
 
 
-    //classes for AI analysis
 
-    class Response
-    {
+        private void testDetectionAgainToolStripMenuItem_Click(object sender, EventArgs e)
+        {
 
-        public bool success { get; set; }
-        public Object[] predictions { get; set; }
 
-    }
+            if (folv_history.SelectedObjects != null && folv_history.SelectedObjects.Count > 0)
+            {
+                Global.Log("----------------------- TESTING TRIGGERS ----------------------------");
 
-    class Object
-    {
+                foreach (History hist in folv_history.SelectedObjects)
+                {
+                    if (!string.IsNullOrEmpty(hist.Filename) && File.Exists(hist.Filename))
+                    {
+                        //test by copying the file as a new file into the watched folder'
+                        string folder = Path.GetDirectoryName(hist.Filename);
+                        string filename = Path.GetFileNameWithoutExtension(hist.Filename);
+                        string ext = Path.GetExtension(hist.Filename);
+                        string testfile = Path.Combine(folder, $"{filename}_AITOOLTEST_{DateTime.Now.TimeOfDay.TotalSeconds}{ext}");
+                        File.Copy(hist.Filename, testfile, true);
+                        string str = "Created test image file based on last detected object for the camera: " + testfile;
+                        Global.Log(str);
+                    }
+                    else
+                    {
+                        Global.Log("Error: File does not exist for testing: " + hist.Filename);
 
-        public string label { get; set; }
-        public float confidence { get; set; }
-        public int y_min { get; set; }
-        public int x_min { get; set; }
-        public int y_max { get; set; }
-        public int x_max { get; set; }
+                    }
 
+
+                }
+
+                Global.Log("---------------------- DONE TESTING TRIGGERS -------------------------");
+
+            }
+
+        }
+
+        private void detailsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            ViewPredictionDetails();
+        }
+
+        private async void refreshToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            await LoadHistoryAsync(false, AppSettings.Settings.HistoryFollow).ConfigureAwait(false);
+        }
+
+        private void folv_history_MouseDoubleClick(object sender, MouseEventArgs e)
+        {
+            ViewPredictionDetails();
+        }
+
+        private void toolStripButtonMaskDetails_Click(object sender, EventArgs e)
+        {
+
+            if (folv_history.SelectedObjects != null && folv_history.SelectedObjects.Count > 0)
+            {
+                History hist = (History)folv_history.SelectedObjects[0];
+                ShowMaskDetailsDialog(hist.Camera);
+
+            }
+
+        }
+
+        private void dynamicMaskDetailsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (folv_history.SelectedObjects != null && folv_history.SelectedObjects.Count > 0)
+            {
+                History hist = (History)folv_history.SelectedObjects[0];
+                ShowMaskDetailsDialog(hist.Camera);
+
+            }
+        }
+
+        private void toolStripButtonEditImageMask_Click(object sender, EventArgs e)
+        {
+            if (folv_history.SelectedObjects != null && folv_history.SelectedObjects.Count > 0)
+            {
+                History hist = (History)folv_history.SelectedObjects[0];
+                ShowEditImageMaskDialog(hist.Camera);
+
+            }
+        }
+
+        private void btn_enabletelegram_Click(object sender, EventArgs e)
+        {
+            foreach (Camera cam in AppSettings.Settings.CameraList)
+            {
+                if (!cam.telegram_enabled)
+                {
+                    cam.telegram_enabled = true;
+                    Log($"Enabled Telegram on camera '{cam.name}'.");
+                }
+            }
+            AppSettings.Save();
+        }
+
+        private void btn_disabletelegram_Click(object sender, EventArgs e)
+        {
+            foreach (Camera cam in AppSettings.Settings.CameraList)
+            {
+                if (cam.telegram_enabled)
+                {
+                    cam.telegram_enabled = false;
+                    Log($"Disabled Telegram on camera '{cam.name}'.");
+                }
+            }
+            AppSettings.Save();
+        }
     }
 
 

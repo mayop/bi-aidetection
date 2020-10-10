@@ -8,12 +8,11 @@ using System.Windows.Forms;
 
 namespace AITool
 {
-    public partial class Frm_CustomMasking : Form
+    public partial class Frm_CustomMasking:Form
     {
         public Camera cam { get; set; }
         private Bitmap transparentLayer, cameraLayer, inProgessLayer;
-        private const string baseDirectory = "./cameras/";
-        private const string FILE_TYPE = ".bmp";
+        private string maskfilename {get;set;} = "";
         private const float DEFAULT_OPACITY = .5f;
         public int brushSize { get; set; }
         bool drawing = false;
@@ -30,7 +29,6 @@ namespace AITool
         public Frm_CustomMasking()
         {
             InitializeComponent();
-            DoubleBuffered = true;
         }
 
         private void ShowImage()
@@ -40,14 +38,18 @@ namespace AITool
                 //first check for saved image in cameras folder. If doesn't exist load the last camera image.
                 if (pbMaskImage.Tag == null || pbMaskImage.Tag.ToString().ToLower() != this.cam.last_image_file.ToLower())
                 {
+                    pbMaskImage.Tag = this.cam.last_image_file;
+
                     if ((!string.IsNullOrWhiteSpace(this.cam.last_image_file)) && (File.Exists(this.cam.last_image_file)))
                     {
+                        //lbl_imagefile.ForeColor = Color.Black;
+
                         cameraLayer = new Bitmap(this.cam.last_image_file);
 
                         //merge layer if masks exist
-                        if (File.Exists(baseDirectory + cam.name + FILE_TYPE))
+                        if (File.Exists(this.maskfilename))
                         {
-                            using (Bitmap maskLayer = new Bitmap(baseDirectory + cam.name + FILE_TYPE)) 
+                            using (Bitmap maskLayer = new Bitmap(this.maskfilename)) 
                             {
                                 pbMaskImage.Image = MergeBitmaps(cameraLayer, maskLayer);
                                 transparentLayer = new Bitmap(AdjustImageOpacity(maskLayer,2f)); // create new bitmap here to prevent file locks and increase to 100% opacity
@@ -58,6 +60,11 @@ namespace AITool
                             pbMaskImage.Image = new Bitmap(cameraLayer);
                             transparentLayer = new Bitmap(pbMaskImage.Image.Width, pbMaskImage.Image.Height, PixelFormat.Format32bppPArgb);
                         }
+                    }
+                    else
+                    {
+                        //lbl_imagefile.ForeColor = Color.Gray;
+                        //this.Text += " (Missing)";
                     }
                 }
 
@@ -248,6 +255,15 @@ namespace AITool
 
         private void Frm_CustomMasking_Load(object sender, EventArgs e)
         {
+            Global_GUI.RestoreWindowState(this);
+            this.maskfilename = AITOOL.GetMaskFile(this.cam.name);
+            this.Text = "Custom Masking - " + this.maskfilename; 
+
+            if (!File.Exists(this.maskfilename))
+            {
+               this.Text += " (Missing)";
+            }
+
             brushSize = cam.mask_brush_size;
             numBrushSize.Value = cam.mask_brush_size;
             ShowImage();
@@ -342,11 +358,13 @@ namespace AITool
         private void btnClear_Click(object sender, EventArgs e)
         {
             allPointLists.Clear();
+            
+            pbMaskImage.Tag = null;
 
             //if mask exists, delete it
-            if (File.Exists(baseDirectory + cam.name + FILE_TYPE))
+            if (File.Exists(this.maskfilename))
             {
-                File.Delete(baseDirectory + cam.name + FILE_TYPE);
+                File.Delete(this.maskfilename);
             }
             
             ShowImage();
@@ -367,13 +385,22 @@ namespace AITool
 
         }
 
+        private void flowLayoutPanel2_Paint(object sender, PaintEventArgs e)
+        {
+
+        }
+
+        private void Frm_CustomMasking_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            Global_GUI.SaveWindowState(this);
+        }
+
         private void btnSave_Click(object sender, EventArgs e)
         {
             if (transparentLayer != null)
             {
-                string path = baseDirectory + cam.name + FILE_TYPE;
                 //save masks at 50% opacity 
-                AdjustImageOpacity(transparentLayer, DEFAULT_OPACITY).Save(path);
+                AdjustImageOpacity(transparentLayer, DEFAULT_OPACITY).Save(this.maskfilename);
             }
 
             this.DialogResult = DialogResult.OK;

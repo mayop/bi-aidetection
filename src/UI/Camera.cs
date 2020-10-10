@@ -65,6 +65,7 @@ namespace AITool
         public long Action_image_merge_jpegquality = 80;
         public string Action_network_folder = "";
         public string Action_network_folder_filename = "[ImageFilenameNoExt]";
+        public int Action_network_folder_purge_older_than_days = 30;
         public bool Action_RunProgram = false;
         public string Action_RunProgramString = "";
         public string Action_RunProgramArgsString = "";
@@ -97,8 +98,9 @@ namespace AITool
         
         public int XOffset = 0;   //these are for when deepstack is having a problem with detection rectangle being in the wrong location
         public int YOffset = 0;   //  Can be negative numbers
-
-        [JsonIgnore]
+        
+        
+            [JsonIgnore]
         public DateTime last_trigger_time;
         [JsonIgnore]
         public List<string> last_detections = new List<string>(); //stores objects that were detected last
@@ -153,15 +155,28 @@ namespace AITool
                             //http://csharphelper.com/blog/2014/09/understand-font-aliasing-issues-in-c/
                             g.TextRenderingHint = TextRenderingHint.SingleBitPerPixelGridFit;
 
+                                                     
+
                             System.Drawing.Color color = new System.Drawing.Color();
                             detections = this.last_detections_summary;
                             if (string.IsNullOrEmpty(detections))
                                 detections = "";
 
-                            if (detections.Contains("irrelevant") || detections.Contains("masked") || detections.Contains("confidence"))
+
+                            string label = Global.GetWordBetween(detections, "", ":");
+
+                            if (label.Contains("irrelevant")  || label.Contains("confidence") || label.Contains("masked") || label.Contains("errors"))
                             {
-                                color = System.Drawing.Color.FromArgb(AppSettings.Settings.RectIrrelevantColorAlpha, AppSettings.Settings.RectIrrelevantColor);
                                 detections = detections.Split(':')[1]; //removes the "1x masked, 3x irrelevant:" before the actual detection, otherwise this would be displayed in the detection tags
+
+                                if (label.Contains("masked"))
+                                {
+                                    color = System.Drawing.Color.FromArgb(AppSettings.Settings.RectMaskedColorAlpha, AppSettings.Settings.RectMaskedColor);
+                                }
+                                else
+                                {
+                                    color = System.Drawing.Color.FromArgb(AppSettings.Settings.RectIrrelevantColorAlpha, AppSettings.Settings.RectIrrelevantColor);
+                                }
                             }
                             else
                             {
@@ -177,7 +192,7 @@ namespace AITool
                             for (int i = 0; i < countr; i++)
                             {
                                 //({ Math.Round((user.confidence * 100), 2).ToString() }%)
-                                lasttext = $"{this.last_detections[i]} {String.Format(AppSettings.Settings.DisplayPercentageFormat, this.last_confidences[i] * 100)}";
+                                lasttext = $"{this.last_detections[i]} {String.Format(AppSettings.Settings.DisplayPercentageFormat, this.last_confidences[i])}";
                                 lastposition = this.last_positions[i];  //load 'xmin,ymin,xmax,ymax' from third column into a string
 
                                 //store xmin, ymin, xmax, ymax in separate variables
@@ -190,22 +205,24 @@ namespace AITool
                                 ymin = ymin + this.YOffset;
 
                                 System.Drawing.Rectangle rect = new System.Drawing.Rectangle(xmin, ymin, xmax - xmin, ymax - ymin);
+                                                               
 
-                                
-
-                                using (Pen pen = new Pen(color, 2))
+                                using (Pen pen = new Pen(color, AppSettings.Settings.RectBorderWidth))
                                 {
                                     g.DrawRectangle(pen, rect); //draw rectangle
                                 }
 
+                                //we need this since people can change the border width in the json file
+                                int halfbrd = AppSettings.Settings.RectBorderWidth / 2;
+
                                 //object name text below rectangle
-                                rect = new System.Drawing.Rectangle(xmin - 1, ymax, img.Width, img.Height); //sets bounding box for drawn text
+                                rect = new System.Drawing.Rectangle(xmin - halfbrd, ymax + halfbrd, img.Width, img.Height); //sets bounding box for drawn text
 
 
                                 Brush brush = new SolidBrush(color); //sets background rectangle color
 
                                 System.Drawing.SizeF size = g.MeasureString(lasttext, new Font(AppSettings.Settings.RectDetectionTextFont, AppSettings.Settings.RectDetectionTextSize)); //finds size of text to draw the background rectangle
-                                g.FillRectangle(brush, xmin - 1, ymax, size.Width, size.Height); //draw grey background rectangle for detection text
+                                g.FillRectangle(brush, xmin - halfbrd, ymax + halfbrd, size.Width, size.Height); //draw grey background rectangle for detection text
                                 g.DrawString(lasttext, new Font(AppSettings.Settings.RectDetectionTextFont, AppSettings.Settings.RectDetectionTextSize), Brushes.Black, rect); //draw detection text
 
                                 g.Flush();
