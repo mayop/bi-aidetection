@@ -290,6 +290,12 @@
     <Compile Include="Frm_ObjectDetail.Designer.cs">
       <DependentUpon>Frm_ObjectDetail.cs</DependentUpon>
     </Compile>
+    <Compile Include="Frm_ApplyCameraTo.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Frm_ApplyCameraTo.Designer.cs">
+      <DependentUpon>Frm_ApplyCameraTo.cs</DependentUpon>
+    </Compile>
     <Compile Include="MaskResultInfo.cs" />
     <Compile Include="ClsPrediction.cs" />
     <Compile Include="Frm_DynamicMaskingAdvanced.cs">
@@ -422,6 +428,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Frm_ObjectDetail.resx">
       <DependentUpon>Frm_ObjectDetail.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Frm_ApplyCameraTo.resx">
+      <DependentUpon>Frm_ApplyCameraTo.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Shell.resx">
       <DependentUpon>Shell.cs</DependentUpon>

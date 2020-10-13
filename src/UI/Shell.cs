@@ -24,8 +24,11 @@ namespace AITool
     {
         private ThreadSafe.Datetime LastListUpdate = new ThreadSafe.Datetime(DateTime.MinValue);
 
+        private ThreadSafe.Boolean DatabaseInitialized = new ThreadSafe.Boolean(false);
 
         private ThreadSafe.Boolean IsListUpdating = new ThreadSafe.Boolean(false);
+
+        private ThreadSafe.Boolean DoneLoading = new ThreadSafe.Boolean(false);
 
         //Dictionary<string, History> HistoryDic = new Dictionary<string, History>();
         private ThreadSafe.Boolean FilterChanged = new ThreadSafe.Boolean(true);
@@ -152,19 +155,13 @@ namespace AITool
             cb_follow.Checked = AppSettings.Settings.HistoryFollow;
             automaticallyRefreshToolStripMenuItem.Checked = AppSettings.Settings.HistoryAutoRefresh;
 
+            storeFalseAlertsToolStripMenuItem.Checked = AppSettings.Settings.HistoryStoreFalseAlerts;
+            storeMaskedAlertsToolStripMenuItem.Checked = AppSettings.Settings.HistoryStoreMaskedAlerts;
+            showOnlyRelevantObjectsToolStripMenuItem.Checked = AppSettings.Settings.HistoryOnlyDisplayRelevantObjects;
 
             HistoryUpdateListTimer.Interval = AppSettings.Settings.TimeBetweenListRefreshsMS;
 
-            if (AppSettings.Settings.HistoryAutoRefresh)
-            {
-                HistoryUpdateListTimer.Enabled = true;
-                HistoryUpdateListTimer.Start();
-            }
-            else
-            {
-                HistoryUpdateListTimer.Enabled = false;
-                HistoryUpdateListTimer.Stop();
-            }
+            this.DoneLoading.WriteFullFence(true);
 
             Log("APP START complete.");
         }
@@ -172,6 +169,7 @@ namespace AITool
 
         async Task UpdateHistoryAddedRemoved()
         {
+            //Log("===Enter");
             //this should be a quicker list update
             if (AppSettings.Settings.HistoryAutoRefresh &&
                 !this.IsListUpdating.ReadFullFence() &&
@@ -179,7 +177,8 @@ namespace AITool
                 this.Visible &&
                 !(this.WindowState == FormWindowState.Minimized) &&
                 (DateTime.Now - this.LastListUpdate.Read()).TotalMilliseconds >= AppSettings.Settings.TimeBetweenListRefreshsMS &&
-                HistoryDB.HasInitialized.ReadFullFence() &&
+                this.DatabaseInitialized.ReadFullFence() &&
+                this.DoneLoading.ReadFullFence() &&
                 await HistoryDB.HasUpdates())
             {
                 this.IsListUpdating.WriteFullFence(true);
@@ -210,11 +209,13 @@ namespace AITool
             {
                 //Global.Log($"Debug: List not updated - Refresh={AppSettings.Settings.HistoryAutoRefresh}, Visible={tabControl1.SelectedIndex == 2 && this.Visible && !(this.WindowState == FormWindowState.Minimized)}, IsListUpdating={this.IsListUpdating.ReadFullFence()}, LastListUpdateMS={(DateTime.Now - this.LastListUpdate.Read()).TotalMilliseconds}");
             }
+            //Log("===Exit");
+
 
         }
 
 
-        void EventMessage(ClsMessage msg)
+        async void EventMessage(ClsMessage msg)
         {
             //output messages from the deepstack, blueiris, etc class to the text log window and log file
             if (msg.MessageType == MessageType.LogEntry)
@@ -222,8 +223,23 @@ namespace AITool
                 Log(msg.Description, "");
             }
             else if (msg.MessageType == MessageType.DatabaseInitialized)
-                LoadHistoryAsync(true, AppSettings.Settings.HistoryFollow);
+            {
+             
+                Log("Info: Database initialized.");
+                this.DatabaseInitialized.WriteFullFence(true);
+                await LoadHistoryAsync(true, AppSettings.Settings.HistoryFollow);
+                if (AppSettings.Settings.HistoryAutoRefresh)
+                {
+                    HistoryUpdateListTimer.Enabled = true;
+                    HistoryUpdateListTimer.Start();
+                }
+                else
+                {
+                    HistoryUpdateListTimer.Enabled = false;
+                    HistoryUpdateListTimer.Stop();
+                }
 
+            }
             else if (msg.MessageType == MessageType.CreateHistoryItem)
             {
                 JsonSerializerSettings jset = new JsonSerializerSettings { };
@@ -231,9 +247,23 @@ namespace AITool
                 jset.PreserveReferencesHandling = PreserveReferencesHandling.Objects;
                 History hist = JsonConvert.DeserializeObject<History>(msg.JSONPayload, jset);
 
-                if (!HistoryDB.ReadOnly)  //otherwise another service is doing all the updating
+
+                if (!HistoryDB.ReadOnly)
                 {
-                    HistoryDB.InsertHistoryQueue(hist);
+                    bool StoreMasked = hist.Success || !hist.WasMasked || (hist.WasMasked && AppSettings.Settings.HistoryStoreMaskedAlerts);
+                    bool StoreFalse = hist.Success || !hist.Detections.ToLower().Contains("false alert") || (hist.Detections.ToLower().Contains("false alert") && AppSettings.Settings.HistoryStoreFalseAlerts);
+                    bool Save = true;
+                    if (!StoreMasked || !StoreFalse)
+                        Save = false;
+
+                    if (Save)
+                    {
+                        HistoryDB.InsertHistoryQueue(hist);
+                    }
+                    else
+                    {
+                        Log($"Info: Not storing item in db - StoreMasked={StoreMasked}, StoreFalse={StoreFalse}: {hist.Detections}");
+                    }
                 }
 
                 //UpdateHistoryAddedRemoved();
@@ -477,7 +507,7 @@ namespace AITool
                 if (AppSettings.Settings.send_errors == true && (HasError || HasWarning) && !text.ToLower().Contains("telegram"))
                 {
                     //await TelegramText($"[{time}]: {text}"); //upload text to Telegram
-                    AITOOL.TriggerActionQueue.AddTriggerActionAsync(TriggerType.TelegramText, null, null, true, false, null, $"[{time}]: {text}");
+                    AITOOL.TriggerActionQueue.AddTriggerActionAsync(TriggerType.TelegramText, null, null, null, true, false, null, $"[{time}]: {text}") ;
 
                 }
 
@@ -1117,8 +1147,14 @@ namespace AITool
 
                         foreach (var pred in predictions)
                         {
-
-                            showObject(e, pred.xmin + XOffset, pred.ymin + YOffset, pred.xmax, pred.ymax, pred.ToString(), pred.Result); //call rectangle drawing method, calls appropriate detection text
+                            if (AppSettings.Settings.HistoryOnlyDisplayRelevantObjects && pred.Result == ResultType.Relevant)
+                            {
+                                showObject(e, pred.xmin + XOffset, pred.ymin + YOffset, pred.xmax, pred.ymax, pred.ToString(), pred.Result); //call rectangle drawing method, calls appropriate detection text
+                            }
+                            else if (!AppSettings.Settings.HistoryOnlyDisplayRelevantObjects)
+                            {
+                                showObject(e, pred.xmin + XOffset, pred.ymin + YOffset, pred.xmax, pred.ymax, pred.ToString(), pred.Result); //call rectangle drawing method, calls appropriate detection text
+                            }
 
                         }
 
@@ -1279,10 +1315,22 @@ namespace AITool
 
             //Log("---Enter");
 
-            Stopwatch semsw = Stopwatch.StartNew();
+            if (!this.DoneLoading.ReadFullFence())  //when you set checkboxes during init, it may trigger the event to load the history
+            {
+                //Log("---Exit (still loading)");
+                return;
+            }
 
             //make sure only one thread updating at a time
-            await Semaphore_List_Updating.WaitAsync();
+            //await Semaphore_List_Updating.WaitAsync();
+
+            if (this.IsListUpdating.ReadFullFence())
+            {
+                Log("---Exit (already updating)");
+                return;
+            }
+
+            Stopwatch semsw = Stopwatch.StartNew();
 
             this.IsListUpdating.WriteFullFence(true);
             this.LastListUpdate.Write(DateTime.Now);
@@ -1299,7 +1347,7 @@ namespace AITool
                 bool displayed = false;
                 do
                 {
-                    if (HistoryDB != null && HistoryDB.HistoryDic != null && folv_history != null && HistoryDB.HasInitialized.ReadFullFence())
+                    if (HistoryDB != null && HistoryDB.HistoryDic != null && folv_history != null && this.DatabaseInitialized.ReadFullFence())
                         break;
                     else if (!displayed)
                     {
@@ -1312,7 +1360,7 @@ namespace AITool
                 } while (sw.ElapsedMilliseconds < 60000);
 
                 if (displayed)
-                    Log($"...Waited {sw.ElapsedMilliseconds}ms for the database to finish initializing/cleaning.");
+                    Log($"...Info: Waited {sw.ElapsedMilliseconds}ms for the database to finish initializing/cleaning.");
 
                 //Dont update list unless we are on the tab and it is visible for performance reasons.
                 if (FilterChanged || folv_history.Items.Count == 0 || (tabControl1.SelectedIndex == 2 && this.Visible && !(this.WindowState == FormWindowState.Minimized)))
@@ -1383,7 +1431,7 @@ namespace AITool
                     cw.Dispose();
                 this.LastListUpdate.Write(DateTime.Now);
                 this.IsListUpdating.WriteFullFence(false);
-                Semaphore_List_Updating.Release();
+                //Semaphore_List_Updating.Release();
                 //Log("---Exit");
 
             }
@@ -1398,17 +1446,23 @@ namespace AITool
 
             if (!hist.Success && cb_filter_success.Checked)
                 ret = false;
-            else if (hist.Success && cb_filter_nosuccess.Checked)
+            
+            if (hist.Success && cb_filter_nosuccess.Checked)
                 ret = false;
-            else if (!hist.WasSkipped && cb_filter_skipped.Checked)
+            
+            if (!hist.WasSkipped && cb_filter_skipped.Checked)
                 ret = false;
-            else if (!hist.WasMasked && cb_filter_masked.Checked)
+            
+            if (!hist.WasMasked && cb_filter_masked.Checked)
+                ret = false;  
+            
+            if (!hist.IsPerson && cb_filter_person.Checked)
                 ret = false;
-            else if (!hist.IsPerson && cb_filter_person.Checked)
+            
+            if (!hist.IsVehicle && cb_filter_vehicle.Checked)
                 ret = false;
-            else if (!hist.IsVehicle && cb_filter_vehicle.Checked)
-                ret = false;
-            else if (!hist.IsAnimal && cb_filter_animal.Checked)
+            
+            if (!hist.IsAnimal && cb_filter_animal.Checked)
                 ret = false;
 
             bool CameraValid = ((comboBox_filter_camera.Text.Trim() == "All Cameras") || hist.Camera.Trim().ToLower() == comboBox_filter_camera.Text.Trim().ToLower());
@@ -1680,9 +1734,7 @@ namespace AITool
 
             //Split by cr/lf or other common delimiters
             cam.trigger_urls = Global.Split(cam.trigger_urls_as_string, "\r\n|;,").ToArray();  //all trigger urls in an array
-
-
-
+            cam.cancel_urls = Global.Split(cam.cancel_urls_as_string, "\r\n|;,").ToArray();  //all trigger urls in an array
 
             AppSettings.Settings.CameraList.Add(cam); //add created camera object to CameraList
 
@@ -1895,6 +1947,12 @@ namespace AITool
         //event: save camera settings button
         private void btnCameraSave_Click_1(object sender, EventArgs e)
         {
+
+            CameraSave(false);
+        }
+
+        private void CameraSave(bool SaveTo)
+        {
             if (list2.Items.Count > 0)
             {
                 //check if name is empty
@@ -1923,15 +1981,16 @@ namespace AITool
                 }
 
 
-                Camera CurCam = AITOOL.GetCamera(list2.SelectedItems[0].Text, false);
+                Camera cam = AITOOL.GetCamera(list2.SelectedItems[0].Text, false);
 
-                if (CurCam == null)
+                if (cam == null)
                 {
                     //should not happen, but...
                     MessageBox.Show($"WARNING: Camera not found???  '{list2.SelectedItems[0].Text}'", "", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     DisplayCameraSettings(); //reset displayed settings
                     return;
                 }
+
 
                 //1. GET SETTINGS INPUTTED
                 //all checkboxes in one array
@@ -1953,28 +2012,115 @@ namespace AITool
                 string[] cbstringarray = new string[] { "Airplane", "Bear", "Bicycle", "Bird", "Boat", "Bus", "Car", "Cat", "Cow", "Dog", "Horse", "Motorcycle", "Person", "Sheep", "Truck" };
 
                 //go through all checkboxes and write all triggering_objects in one string
-                CurCam.triggering_objects_as_string = "";
+                cam.triggering_objects_as_string = "";
                 for (int i = 0; i < cbarray.Length; i++)
                 {
                     if (cbarray[i].Checked == true)
                     {
-                        CurCam.triggering_objects_as_string += $"{cbstringarray[i].Trim()}, ";
+                        cam.triggering_objects_as_string += $"{cbstringarray[i].Trim()}, ";
                     }
                 }
 
                 //get lower and upper threshold values from textboxes
-                CurCam.threshold_lower = Convert.ToInt32(tb_threshold_lower.Text.Trim());
-                CurCam.threshold_upper = Convert.ToInt32(tb_threshold_upper.Text.Trim());
+                cam.threshold_lower = Convert.ToInt32(tb_threshold_lower.Text.Trim());
+                cam.threshold_upper = Convert.ToInt32(tb_threshold_upper.Text.Trim());
 
-                CurCam.triggering_objects = Global.Split(CurCam.triggering_objects_as_string, ",").ToArray();   //triggering_objects_as_string.Split(','); //split the row of triggering objects between every ','
-                CurCam.trigger_urls = Global.Split(CurCam.trigger_urls_as_string, "\r\n|;,").ToArray();  //all trigger urls in an array
+                cam.triggering_objects = Global.Split(cam.triggering_objects_as_string, ",").ToArray();   //triggering_objects_as_string.Split(','); //split the row of triggering objects between every ','
 
-                CurCam.name = tbName.Text.Trim();  //just in case we needed to rename it
-                CurCam.prefix = tbPrefix.Text.Trim();
-                CurCam.enabled = cb_enabled.Checked;
-                CurCam.maskManager.masking_enabled = cb_masking_enabled.Checked;
-                CurCam.input_path = cmbcaminput.Text.Trim();
-                CurCam.input_path_includesubfolders = cb_monitorCamInputfolder.Checked;
+                cam.trigger_urls = Global.Split(cam.trigger_urls_as_string, "\r\n|;,").ToArray();  //all trigger urls in an array
+                cam.cancel_urls = Global.Split(cam.cancel_urls_as_string, "\r\n|;,").ToArray();
+
+                cam.name = tbName.Text.Trim();  //just in case we needed to rename it
+                cam.prefix = tbPrefix.Text.Trim();
+                cam.enabled = cb_enabled.Checked;
+                cam.maskManager.masking_enabled = cb_masking_enabled.Checked;
+                cam.input_path = cmbcaminput.Text.Trim();
+                cam.input_path_includesubfolders = cb_monitorCamInputfolder.Checked;
+
+                int ccnt = 0;
+
+                if (SaveTo)
+                {
+                    using (Frm_ApplyCameraTo frm = new Frm_ApplyCameraTo())
+                    {
+                        foreach (Camera ccam in AppSettings.Settings.CameraList)
+                        {
+                            if (ccam.name != cam.name)
+                                frm.checkedListBoxCameras.Items.Add(ccam.name, false);
+                        }
+
+                        if (frm.ShowDialog() == DialogResult.OK)
+                        {
+                            for (int i = 0; i < frm.checkedListBoxCameras.Items.Count; i++)
+                            {
+                                if (frm.checkedListBoxCameras.GetItemChecked(i))
+                                {
+                                    Camera icam = AITOOL.GetCamera(frm.checkedListBoxCameras.Items[i].ToString(),false);
+                                    if (icam != null)
+                                    {
+                                        ccnt++;
+                                        
+                                        Log($"Updating camera '{cam.name}' with settings from '{icam.name}'...");
+
+                                        if (frm.cb_apply_confidence_limits.Checked)
+                                        {
+                                            icam.threshold_lower = cam.threshold_lower;
+                                            icam.threshold_upper = cam.threshold_upper;
+                                        }
+                                        if (frm.cb_apply_objects.Checked)
+                                        {
+                                            icam.triggering_objects_as_string = cam.triggering_objects_as_string;
+                                            icam.triggering_objects = Global.Split(icam.triggering_objects_as_string, ",").ToArray();   //triggering_objects_as_string.Split(','); //split the row of triggering objects between every ','
+                                        }
+                                        if (frm.cb_apply_actions.Checked)
+                                        {
+                                            icam.trigger_urls_as_string = cam.trigger_urls_as_string;
+                                            icam.trigger_urls = cam.trigger_urls;
+                                            icam.cancel_urls_as_string = cam.cancel_urls_as_string;
+                                            icam.cancel_urls = cam.cancel_urls;
+                                            icam.cooldown_time = cam.cooldown_time;
+                                            icam.telegram_enabled = cam.telegram_enabled;
+                                            icam.telegram_caption = cam.telegram_caption;
+                                            icam.Action_image_copy_enabled = cam.Action_image_copy_enabled;
+                                            icam.Action_network_folder = cam.Action_network_folder;
+                                            icam.Action_network_folder_filename = cam.Action_network_folder_filename;
+                                            icam.Action_RunProgram = cam.Action_RunProgram;
+                                            icam.Action_RunProgramString = cam.Action_RunProgramString;
+                                            icam.Action_RunProgramArgsString = cam.Action_RunProgramArgsString;
+                                            icam.Action_PlaySounds = cam.Action_PlaySounds;
+                                            icam.Action_Sounds = cam.Action_Sounds;
+                                            icam.Action_mqtt_enabled = cam.Action_mqtt_enabled;
+                                            icam.Action_mqtt_payload = cam.Action_mqtt_payload;
+                                            icam.Action_mqtt_topic = cam.Action_mqtt_topic;
+                                            icam.Action_mqtt_payload_cancel = cam.Action_mqtt_payload_cancel;
+                                            icam.Action_mqtt_topic_cancel = cam.Action_mqtt_topic_cancel;
+                                            icam.Action_image_merge_detections = cam.Action_image_merge_detections;
+                                            icam.Action_image_merge_jpegquality = cam.Action_image_merge_jpegquality;
+                                            icam.Action_queued = cam.Action_queued;
+                                        }
+                                        if (frm.cb_apply_mask_settings.Checked)
+                                        {
+                                            icam.maskManager.masking_enabled = cam.maskManager.masking_enabled;
+
+                                            icam.maskManager.history_save_mins = cam.maskManager.history_save_mins;
+                                            icam.maskManager.history_threshold_count = cam.maskManager.history_threshold_count;
+                                            icam.maskManager.mask_remove_mins = cam.maskManager.mask_remove_mins;
+                                            icam.maskManager.thresholdPercent = cam.maskManager.thresholdPercent;
+                                            icam.maskManager.objects = cam.maskManager.objects;
+                                        }
+
+                                    }
+                                }
+
+                            }
+
+                        }
+                    }
+                }
+                else
+                {
+                    ccnt = 1;
+                }
 
                 LoadCameras();
 
@@ -1982,9 +2128,10 @@ namespace AITool
 
                 UpdateWatchers(true);
 
-                Log("Camera saved.");
+                string saved = $"{ccnt} Camera(s) saved.";
+                Log(saved);
 
-                MessageBox.Show("Camera saved", "", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show(saved, "", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
 
                 ////2. UPDATE SETTINGS
@@ -2007,8 +2154,8 @@ namespace AITool
 
             }
             DisplayCameraSettings();
-        }
 
+        }
         //event: delete camera button
         private void btnCameraDel_Click(object sender, EventArgs e)
         {
@@ -2625,45 +2772,44 @@ namespace AITool
 
         }
 
-        private void btnActions_Click(object sender, EventArgs e)
-        {
-            using (Frm_LegacyActions frm = new Frm_LegacyActions())
-            {
+        //private void btnActions_Click(object sender, EventArgs e)
+        //{
+        //    using (Frm_LegacyActions frm = new Frm_LegacyActions())
+        //    {
 
 
-                Camera cam = AITOOL.GetCamera(list2.SelectedItems[0].Text);
-                frm.cam = cam;
+        //        Camera cam = AITOOL.GetCamera(list2.SelectedItems[0].Text);
+        //        frm.cam = cam;
 
-                frm.tbTriggerUrl.Text = string.Join("\r\n", Global.Split(cam.trigger_urls_as_string, "\r\n|;,"));
-                frm.tbCancelUrl.Text = string.Join("\r\n", Global.Split(cam.cancel_urls_as_string, "\r\n|;,"));
-                frm.tb_cooldown.Text = cam.cooldown_time.ToString(); //load cooldown time
-                //load telegram image sending on/off option
-                frm.cb_telegram.Checked = cam.telegram_enabled;
-                frm.cb_mask_telegram.Checked = cam.telegram_mask_enabled; // Mayo Added
+        //        frm.tbTriggerUrl.Text = string.Join("\r\n", Global.Split(cam.trigger_urls_as_string, "\r\n|;,"));
+        //        frm.tbCancelUrl.Text = string.Join("\r\n", Global.Split(cam.cancel_urls_as_string, "\r\n|;,"));
+        //        frm.tb_cooldown.Text = cam.cooldown_time.ToString(); //load cooldown time
+        //        //load telegram image sending on/off option
+        //        frm.cb_telegram.Checked = cam.telegram_enabled;
 
-                frm.cb_copyAlertImages.Checked = cam.Action_image_copy_enabled;
-                frm.tb_network_folder_filename.Text = cam.Action_network_folder_filename;
-                frm.tb_network_folder.Text = cam.Action_network_folder;
-                frm.cb_RunProgram.Checked = cam.Action_RunProgram;
+        //        frm.cb_copyAlertImages.Checked = cam.Action_image_copy_enabled;
+        //        frm.tb_network_folder_filename.Text = cam.Action_network_folder_filename;
+        //        frm.tb_network_folder.Text = cam.Action_network_folder;
+        //        frm.cb_RunProgram.Checked = cam.Action_RunProgram;
 
-                if (frm.ShowDialog() == DialogResult.OK)
-                {
-                    cam.trigger_urls_as_string = string.Join(",", Global.Split(frm.tbTriggerUrl.Text.Trim(), "\r\n|;,"));
-                    cam.cancel_urls_as_string = string.Join(",", Global.Split(frm.tbCancelUrl.Text.Trim(), "\r\n|;,"));
-                    cam.cooldown_time = Convert.ToDouble(frm.tb_cooldown.Text.Trim());
-                    cam.telegram_enabled = frm.cb_telegram.Checked;
-                    cam.telegram_mask_enabled = frm.cb_mask_telegram.Checked;  // Mayo Added
-                    cam.Action_image_copy_enabled = frm.cb_copyAlertImages.Checked;
-                    cam.Action_network_folder = frm.tb_network_folder.Text.Trim();
-                    cam.Action_network_folder_filename = frm.tb_network_folder_filename.Text;
-                    cam.Action_RunProgram = frm.cb_RunProgram.Checked;
-                    cam.Action_RunProgramString = frm.tb_RunExternalProgram.Text;
+        //        if (frm.ShowDialog() == DialogResult.OK)
+        //        {
+        //            cam.trigger_urls_as_string = string.Join(",", Global.Split(frm.tbTriggerUrl.Text.Trim(), "\r\n|;,"));
+        //            cam.cancel_urls_as_string = string.Join(",", Global.Split(frm.tbCancelUrl.Text.Trim(), "\r\n|;,"));
+        //            cam.cancel_urls = Global.Split(cam.cancel_urls_as_string, "\r\n|;,").ToArray();
+        //            cam.cooldown_time = Convert.ToDouble(frm.tb_cooldown.Text.Trim());
+        //            cam.telegram_enabled = frm.cb_telegram.Checked;
+        //            cam.Action_image_copy_enabled = frm.cb_copyAlertImages.Checked;
+        //            cam.Action_network_folder = frm.tb_network_folder.Text.Trim();
+        //            cam.Action_network_folder_filename = frm.tb_network_folder_filename.Text;
+        //            cam.Action_RunProgram = frm.cb_RunProgram.Checked;
+        //            cam.Action_RunProgramString = frm.tb_RunExternalProgram.Text;
 
-                    AppSettings.Save();
+        //            AppSettings.Save();
 
-                }
-            }
-        }
+        //        }
+        //    }
+        //}
 
         private void btnActions_Click_1(object sender, EventArgs e)
         {
@@ -2701,12 +2847,23 @@ namespace AITool
                 frm.tb_MQTT_Payload_cancel.Text = cam.Action_mqtt_payload_cancel;
                 frm.tb_MQTT_Topic_Cancel.Text = cam.Action_mqtt_topic_cancel;
 
+                frm.cb_queue_actions.Checked = cam.Action_queued;
+
                 frm.cb_mergeannotations.Checked = cam.Action_image_merge_detections;
+
+                frm.tb_jpeg_merge_quality.Text = cam.Action_image_merge_jpegquality.ToString();
+
+                if (frm.cb_mergeannotations.Checked)
+                    frm.tb_jpeg_merge_quality.Enabled = true;
+                else
+                    frm.tb_jpeg_merge_quality.Enabled = false;
 
                 if (frm.ShowDialog() == DialogResult.OK)
                 {
                     cam.trigger_urls_as_string = string.Join(",", Global.Split(frm.tbTriggerUrl.Text.Trim(), "\r\n|;,"));
+                    cam.trigger_urls = Global.Split(cam.trigger_urls_as_string, "\r\n|;,").ToArray();
                     cam.cancel_urls_as_string = string.Join(",", Global.Split(frm.tbCancelUrl.Text.Trim(), "\r\n|;,"));
+                    cam.cancel_urls = Global.Split(cam.cancel_urls_as_string, "\r\n|;,").ToArray();
 
                     cam.cooldown_time = Convert.ToDouble(frm.tb_cooldown.Text.Trim());
                     cam.telegram_enabled = frm.cb_telegram.Checked;
@@ -2731,7 +2888,11 @@ namespace AITool
                     cam.Action_mqtt_topic_cancel = frm.tb_MQTT_Topic_Cancel.Text.Trim();
 
                     cam.Action_image_merge_detections = frm.cb_mergeannotations.Checked;
+                    
+                    cam.Action_image_merge_jpegquality = Convert.ToInt64(frm.tb_jpeg_merge_quality.Text);
 
+                    cam.Action_queued = frm.cb_queue_actions.Checked;
+                    
                     AppSettings.Save();
 
                 }
@@ -3018,6 +3179,7 @@ namespace AITool
         {
             AppSettings.Settings.HistoryShowObjects = cb_showObjects.Checked;
             AppSettings.Save();
+            pictureBox1.Refresh();
         }
 
         private void cb_follow_Click(object sender, EventArgs e)
@@ -3173,6 +3335,32 @@ namespace AITool
                 }
             }
             AppSettings.Save();
+        }
+
+        private void storeFalseAlertsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            AppSettings.Settings.HistoryStoreFalseAlerts = storeFalseAlertsToolStripMenuItem.Checked;
+            AppSettings.Save();
+        }
+
+        private void storeMaskedAlertsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            AppSettings.Settings.HistoryStoreMaskedAlerts = storeMaskedAlertsToolStripMenuItem.Checked;
+            AppSettings.Save();
+
+        }
+
+        private void showOnlyRelevantObjectsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            AppSettings.Settings.HistoryOnlyDisplayRelevantObjects = showOnlyRelevantObjectsToolStripMenuItem.Checked;
+            AppSettings.Save();
+            pictureBox1.Refresh();
+
+        }
+
+        private void btnSaveTo_Click(object sender, EventArgs e)
+        {
+            CameraSave(true);
         }
     }
 
