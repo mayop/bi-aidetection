@@ -20,7 +20,7 @@ using System.Threading;
 namespace AITool
 {
     public class ClsTriggerActionQueueItem
-    {
+    {     
         public TriggerType _ttype = TriggerType.Unknown;
         public Camera _cam = null;
         public ClsImageQueueItem _curmg = null;
@@ -164,6 +164,7 @@ namespace AITool
         public async Task<bool> Trigger(Camera cam, ClsImageQueueItem CurImg, bool Trigger)
         {
             bool ret = true;
+            MayoFunctions MayoFunc = new MayoFunctions(); // Mayo Add
 
             //mostly for testing when we dont have a current image...
             if (CurImg == null)
@@ -197,7 +198,8 @@ namespace AITool
                         if (cam.Action_image_merge_detections_makecopy)
                             tmpfile = Path.Combine(Environment.GetEnvironmentVariable("TEMP"), Path.GetFileName(CurImg.image_path));
 
-                        cam.MergeImageAnnotations(tmpfile, CurImg);
+                        //cam.MergeImageAnnotations(tmpfile, CurImg);
+                        MayoFunc.MergeImageAnnotations(cam, CurImg, tmpfile); // Mayo Add
 
                         if (cam.Action_image_merge_detections_makecopy && System.IO.File.Exists(tmpfile))  //it wont exist if no detections or failure...
                             CurImg = new ClsImageQueueItem(tmpfile, 1);
