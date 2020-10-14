@@ -40,6 +40,7 @@ using System.Reflection;
 using OSVersionExtension;
 using System.Runtime.CompilerServices;
 using SQLitePCL;
+using Rectangle = System.Drawing.Rectangle;
 
 namespace AITool
 {
@@ -1132,7 +1133,7 @@ namespace AITool
                                             }
 
                                             //mark the end of AI detection for the current image
-                                            cam.maskManager.lastDetectionDate = DateTime.Now;
+                                            cam.maskManager.LastDetectionDate = DateTime.Now;
 
                                             string PredictionsJSON = Global.GetJSONString(predictions);
 
@@ -1489,24 +1490,24 @@ namespace AITool
                             //if the pixel is transparent (A refers to the alpha channel), the point is outside of masked area(s)
                             if (pixelColor.A < 10)
                             {
-                                ret.Image_PointsOutsideMask++;
+                                ret.ImagePointsOutsideMask++;
                             }
                         }
                         else
                         {
                             if (pixelColor.A == 0)  // object is in a transparent section of the image (not masked)
                             {
-                                ret.Image_PointsOutsideMask++;
+                                ret.ImagePointsOutsideMask++;
                             }
                         }
 
                     }
 
-                    if (ret.Image_PointsOutsideMask > 4) //if 5 or more of the 9 detection points are outside of masked areas, the majority of the object is outside of masked area(s)
+                    if (ret.ImagePointsOutsideMask > 4) //if 5 or more of the 9 detection points are outside of masked areas, the majority of the object is outside of masked area(s)
                     {
-                        if (ret.Image_PointsOutsideMask == 9)
+                        if (ret.ImagePointsOutsideMask == 9)
                         {
-                            Log($"      ->ALL of the object is OUTSIDE of masked area(s). ({ret.Image_PointsOutsideMask} of 9 points)");
+                            Log($"      ->ALL of the object is OUTSIDE of masked area(s). ({ret.ImagePointsOutsideMask} of 9 points)");
                             ret.IsMasked = false;
                             ret.MaskType = MaskType.Image;
                             ret.Result = MaskResult.MajorityOutsideMask;
@@ -1514,7 +1515,7 @@ namespace AITool
                         }
                         else
                         {
-                            Log($"      ->Most of the object is OUTSIDE of masked area(s). ({ret.Image_PointsOutsideMask} of 9 points)");
+                            Log($"      ->Most of the object is OUTSIDE of masked area(s). ({ret.ImagePointsOutsideMask} of 9 points)");
                             ret.IsMasked = false;
                             ret.MaskType = MaskType.Image;
                             ret.Result = MaskResult.CompletlyOutsideMask;
@@ -1524,9 +1525,9 @@ namespace AITool
 
                     else //if 4 or less of 9 detection points are outside, then 5 or more points are in masked areas and the majority of the object is so too
                     {
-                        if (ret.Image_PointsOutsideMask == 0)
+                        if (ret.ImagePointsOutsideMask == 0)
                         {
-                            Log($"      ->All of the object is INSIDE a masked area. ({ret.Image_PointsOutsideMask} of 9 points)");
+                            Log($"      ->All of the object is INSIDE a masked area. ({ret.ImagePointsOutsideMask} of 9 points)");
                             ret.IsMasked = true;
                             ret.MaskType = MaskType.Image;
                             ret.Result = MaskResult.CompletlyInsideMask;
@@ -1535,7 +1536,7 @@ namespace AITool
                         }
                         else
                         {
-                            Log($"      ->Most of the object is INSIDE a masked area. ({ret.Image_PointsOutsideMask} of 9 points)");
+                            Log($"      ->Most of the object is INSIDE a masked area. ({ret.ImagePointsOutsideMask} of 9 points)");
                             ret.IsMasked = true;
                             ret.MaskType = MaskType.Image;
                             ret.Result = MaskResult.MajorityInsideMask;
@@ -1777,6 +1778,17 @@ namespace AITool
 
             return cam;
 
+        }
+
+        public static float getObjIntersectPercent(Rectangle masterRectangle, Rectangle compareRectangle)
+        {
+
+            Rectangle objIntersect = Rectangle.Intersect(masterRectangle, compareRectangle);
+
+            float percentage = (((objIntersect.Width * objIntersect.Height) * 2) * 100f) /
+                   ((compareRectangle.Width * compareRectangle.Height) + (compareRectangle.Width * masterRectangle.Height));
+
+            return percentage;
         }
 
     }
