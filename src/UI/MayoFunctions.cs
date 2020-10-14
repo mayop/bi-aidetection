@@ -1,12 +1,18 @@
 ﻿using System;
-using System.Linq;
-using System.IO;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
-using System.Diagnostics;
+using System.Drawing.Text;
 
+using System.Linq;
+using System.IO;
 using System.Reflection;
+using System.Security.AccessControl;
+using System.Threading.Tasks;
+
+//using SixLabors.ImageSharp;
 
 using Telegram.Bot;
 using Telegram.Bot.Args;
@@ -14,11 +20,7 @@ using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.InputFiles;
 
-using System.Security.AccessControl;
-using System.Threading.Tasks;
-
 using File = System.IO.File;
-using System.Runtime;
 
 
 namespace AITool
@@ -26,32 +28,264 @@ namespace AITool
     {
         static ITelegramBotClient botClient;
 
-        public async void MergeImageAnnotations(Camera cam, ClsImageQueueItem CurImg = null, string OutputImageFile = "")
+        public async Task<string> MergeImageAnnotations(ClsTriggerActionQueueItem AQI)
         {
             int countr = 0;
             string detections = "";
             string lasttext = "";
             string lastposition = "";
+            string OutputImageFile = "";
 
             try
             {
-                string InputImageFile = "";
+                Global.Log("Merging image annotations: " + AQI.CurImg.image_path);
 
-                if (CurImg == null)
+                if (System.IO.File.Exists(AQI.CurImg.image_path))
                 {
-                    InputImageFile = cam.last_image_file_with_detections;
+                    Stopwatch sw = Stopwatch.StartNew();                    
+
+                    using (Bitmap img = new Bitmap(AQI.CurImg.image_path))
+                    {
+                        using (Graphics g = Graphics.FromImage(img))
+                        {
+                            g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                            g.SmoothingMode = SmoothingMode.HighQuality;
+                            g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                            //http://csharphelper.com/blog/2014/09/understand-font-aliasing-issues-in-c/
+                            g.TextRenderingHint = TextRenderingHint.SingleBitPerPixelGridFit;
+
+
+                            System.Drawing.Color color = new System.Drawing.Color();
+
+                            if (AQI.Hist != null && !string.IsNullOrEmpty(AQI.Hist.PredictionsJSON))
+                            {
+                                List<ClsPrediction> predictions = new List<ClsPrediction>();
+
+                                predictions = Global.SetJSONString<List<ClsPrediction>>(AQI.Hist.PredictionsJSON);
+
+                                foreach (var pred in predictions)
+                                {
+                                    bool Merge = false;
+
+                                    if (AppSettings.Settings.HistoryOnlyDisplayRelevantObjects && pred.Result == ResultType.Relevant)
+                                        Merge = true;
+                                    else if (!AppSettings.Settings.HistoryOnlyDisplayRelevantObjects)
+                                        Merge = true;
+
+                                    if (Merge)
+                                    {
+                                        if (pred.Result == ResultType.Relevant)
+                                        {
+                                            color = System.Drawing.Color.FromArgb(AppSettings.Settings.RectRelevantColorAlpha, AppSettings.Settings.RectRelevantColor);
+                                        }
+                                        else if (pred.Result == ResultType.DynamicMasked || pred.Result == ResultType.ImageMasked || pred.Result == ResultType.StaticMasked)
+                                        {
+                                            color = System.Drawing.Color.FromArgb(AppSettings.Settings.RectMaskedColorAlpha, AppSettings.Settings.RectMaskedColor);
+                                        }
+                                        else
+                                        {
+                                            color = System.Drawing.Color.FromArgb(AppSettings.Settings.RectIrrelevantColorAlpha, AppSettings.Settings.RectIrrelevantColor);
+                                        }
+
+                                        int xmin = pred.xmin + AQI.cam.XOffset;
+                                        int ymin = pred.ymin + AQI.cam.YOffset;
+                                        int xmax = pred.xmax;
+                                        int ymax = pred.ymax;
+
+                                        System.Drawing.Rectangle rect = new System.Drawing.Rectangle(xmin, ymin, xmax - xmin, ymax - ymin);
+
+                                        using (Pen pen = new Pen(color, AppSettings.Settings.RectBorderWidth))
+                                        {
+                                            g.DrawRectangle(pen, rect); //draw rectangle
+                                        }
+
+                                        //we need this since people can change the border width in the json file
+                                        int halfbrd = AppSettings.Settings.RectBorderWidth / 2;
+
+                                        //object name text below rectangle
+                                        rect = new System.Drawing.Rectangle(xmin - halfbrd, ymax + halfbrd, img.Width, img.Height); //sets bounding box for drawn text
+
+                                        Brush brush = new SolidBrush(color); //sets background rectangle color
+
+                                        lasttext = pred.ToString();
+
+                                        System.Drawing.SizeF size = g.MeasureString(lasttext, new Font(AppSettings.Settings.RectDetectionTextFont, AppSettings.Settings.RectDetectionTextSize)); //finds size of text to draw the background rectangle
+                                        g.FillRectangle(brush, xmin - halfbrd, ymax + halfbrd, size.Width, size.Height); //draw grey background rectangle for detection text
+                                        g.DrawString(lasttext, new Font(AppSettings.Settings.RectDetectionTextFont, AppSettings.Settings.RectDetectionTextSize), Brushes.Black, rect); //draw detection text
+
+                                        g.Flush();
+
+                                        countr++;
+                                    }
+
+                                }
+
+                            }
+                            else
+                            {
+                                //Use the old way -this code really doesnt need to be here but leaving just to make sure
+                                detections = AQI.cam.last_detections_summary;
+                                if (string.IsNullOrEmpty(detections))
+                                    detections = "";
+
+                                string label = Global.GetWordBetween(detections, "", ":");
+
+                                if (label.Contains("irrelevant") || label.Contains("confidence") || label.Contains("masked") || label.Contains("errors"))
+                                {
+                                    detections = detections.Split(':')[1]; //removes the "1x masked, 3x irrelevant:" before the actual detection, otherwise this would be displayed in the detection tags
+
+                                    if (label.Contains("masked"))
+                                    {
+                                        color = System.Drawing.Color.FromArgb(AppSettings.Settings.RectMaskedColorAlpha, AppSettings.Settings.RectMaskedColor);
+                                    }
+                                    else
+                                    {
+                                        color = System.Drawing.Color.FromArgb(AppSettings.Settings.RectIrrelevantColorAlpha, AppSettings.Settings.RectIrrelevantColor);
+                                    }
+                                }
+                                else
+                                {
+                                    color = System.Drawing.Color.FromArgb(AppSettings.Settings.RectRelevantColorAlpha, AppSettings.Settings.RectRelevantColor);
+                                }
+
+                                //List<string> detectlist = Global.Split(detections, "|;");
+                                countr = AQI.cam.last_detections.Count();
+
+                                //display a rectangle around each relevant object
+
+
+                                for (int i = 0; i < countr; i++)
+                                {
+                                    //({ Math.Round((user.confidence * 100), 2).ToString() }%)
+                                    lasttext = $"{AQI.cam.last_detections[i]} {String.Format(AppSettings.Settings.DisplayPercentageFormat, AQI.cam.last_confidences[i])}";
+                                    lastposition = AQI.cam.last_positions[i];  //load 'xmin,ymin,xmax,ymax' from third column into a string
+
+                                    //store xmin, ymin, xmax, ymax in separate variables
+                                    Int32.TryParse(lastposition.Split(',')[0], out int xmin);
+                                    Int32.TryParse(lastposition.Split(',')[1], out int ymin);
+                                    Int32.TryParse(lastposition.Split(',')[2], out int xmax);
+                                    Int32.TryParse(lastposition.Split(',')[3], out int ymax);
+
+                                    xmin = xmin + AQI.cam.XOffset;
+                                    ymin = ymin + AQI.cam.YOffset;
+
+                                    System.Drawing.Rectangle rect = new System.Drawing.Rectangle(xmin, ymin, xmax - xmin, ymax - ymin);
+
+
+                                    using (Pen pen = new Pen(color, AppSettings.Settings.RectBorderWidth))
+                                    {
+                                        g.DrawRectangle(pen, rect); //draw rectangle
+                                    }
+
+                                    //we need this since people can change the border width in the json file
+                                    int halfbrd = AppSettings.Settings.RectBorderWidth / 2;
+
+                                    //object name text below rectangle
+                                    rect = new System.Drawing.Rectangle(xmin - halfbrd, ymax + halfbrd, img.Width, img.Height); //sets bounding box for drawn text
+
+
+                                    Brush brush = new SolidBrush(color); //sets background rectangle color
+
+                                    System.Drawing.SizeF size = g.MeasureString(lasttext, new Font(AppSettings.Settings.RectDetectionTextFont, AppSettings.Settings.RectDetectionTextSize)); //finds size of text to draw the background rectangle
+                                    g.FillRectangle(brush, xmin - halfbrd, ymax + halfbrd, size.Width, size.Height); //draw grey background rectangle for detection text
+                                    g.DrawString(lasttext, new Font(AppSettings.Settings.RectDetectionTextFont, AppSettings.Settings.RectDetectionTextSize), Brushes.Black, rect); //draw detection text
+
+                                    g.Flush();
+
+                                    //Global.Log($"...{i}, LastText='{lasttext}' - LastPosition='{lastposition}'");
+                                }
+
+                            }
+
+
+                            if (countr > 0)
+                            {
+
+                                GraphicsState gs = g.Save();
+
+                                ImageCodecInfo jpgEncoder = this.GetImageEncoder(ImageFormat.Jpeg);
+
+                                // Create an Encoder object based on the GUID  
+                                // for the Quality parameter category.  
+                                System.Drawing.Imaging.Encoder myEncoder = System.Drawing.Imaging.Encoder.Quality;
+
+                                // Create an EncoderParameters object.  
+                                // An EncoderParameters object has an array of EncoderParameter  
+                                // objects. In this case, there is only one  
+                                // EncoderParameter object in the array.  
+                                EncoderParameters myEncoderParameters = new EncoderParameters(1);
+
+                                EncoderParameter myEncoderParameter = new EncoderParameter(myEncoder, AQI.cam.Action_image_merge_jpegquality);  //100=least compression, largest file size, best quality
+                                myEncoderParameters.Param[0] = myEncoderParameter;
+
+                                bool Success = true;
+
+                                if (AQI.cam.Action_image_merge_detections_makecopy)
+                                    OutputImageFile = Path.Combine(Environment.GetEnvironmentVariable("TEMP"), Path.GetFileName(AQI.CurImg.image_path));
+                                else
+                                    OutputImageFile = AQI.CurImg.image_path;
+
+                                if (System.IO.File.Exists(OutputImageFile))
+                                {
+                                    Success = await Global.WaitForFileAccessAsync(OutputImageFile, FileSystemRights.FullControl, FileShare.ReadWrite);
+                                }
+
+                                if (Success)
+                                {
+                                    img.Save(OutputImageFile, jpgEncoder, myEncoderParameters);
+                                    Global.Log($"Merged {countr} detections in {sw.ElapsedMilliseconds}ms into image {OutputImageFile}");
+                                }
+                                else
+                                {
+                                    Global.Log($"Error: Could not gain access to write merged file {OutputImageFile}");
+                                }
+
+                            }
+                            else
+                            {
+                                Global.Log($"No detections to merge.  Time={sw.ElapsedMilliseconds}ms, {OutputImageFile}");
+
+                            }
+
+                        }
+
+                    }
+
                 }
                 else
                 {
-                    InputImageFile = CurImg.image_path;
+                    Global.Log("Error: could not find last image with detections: " + AQI.CurImg.image_path);
                 }
+            }
+            catch (Exception ex)
+            {
 
-                if (File.Exists(InputImageFile))
+                Global.Log($"Error: Detections='{detections}', LastText='{lasttext}', LastPostions='{lastposition}' - " + Global.ExMsg(ex));
+            }
+
+            return OutputImageFile;
+        }
+
+
+        public async void MergeImageAnnotationsOld(Camera cam, ClsTriggerActionQueueItem AQI)
+        {
+            int countr = 0;
+            string detections = "";
+            string lasttext = "";
+            string lastposition = "";
+            string OutputImageFile = "";
+
+            try
+            {
+                Global.Log("Merging image annotations: " + AQI.CurImg.image_path);
+
+                if (File.Exists(AQI.CurImg.image_path))
                 {
                     Stopwatch sw = Stopwatch.StartNew();
 
-                    using (Bitmap img = new Bitmap(InputImageFile))
+                    using (Bitmap img = new Bitmap(AQI.CurImg.image_path))
                     {
+                        /*
                         using (Graphics gfxImage = Graphics.FromImage(img))
                         {
                             System.Drawing.Rectangle rect;
@@ -82,10 +316,10 @@ namespace AITool
                                 lastposition = cam.last_positions[i];  //load 'xmin,ymin,xmax,ymax' from third column into a string
 
                                 //store xmin, ymin, xmax, ymax in separate variables
-                                Int32.TryParse(lastposition.Split(',')[0], out int xmin);
-                                Int32.TryParse(lastposition.Split(',')[1], out int ymin);
-                                Int32.TryParse(lastposition.Split(',')[2], out int xmax);
-                                Int32.TryParse(lastposition.Split(',')[3], out int ymax);
+                                int xmin = pred.xmin + AQI.cam.XOffset;
+                                int ymin = pred.ymin + AQI.cam.YOffset;
+                                int xmax = pred.xmax;
+                                int ymax = pred.ymax;                   
 
                                 if (cam.telegram_mask_enabled && !bSendTelegramMessage) {
                                     bSendTelegramMessage ^= this.TelegramOutsideMask(cam.name, xmin, xmax, ymin, ymax, img.Width, img.Height);                                    
@@ -155,6 +389,7 @@ namespace AITool
                                 Global.Log($"No detections to merge.  Time={sw.ElapsedMilliseconds}ms, {OutputImageFile}");
                             }
                         }
+                        */
                     }
                 }
                 else
