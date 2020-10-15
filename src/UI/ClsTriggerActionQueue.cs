@@ -250,7 +250,7 @@ namespace AITool
                     {
                         Global.Log($"{CurSrv} -    Copying image to network folder...");
                         string newimagepath = "";
-                        if (!CopyImage(AQI.cam, AQI.CurImg, ref newimagepath))
+                        if (!CopyImage(AQI, ref newimagepath))
                         {
                             ret = false;
                             Global.Log($"{CurSrv} -    -> Warning: Image could not be copied to network folder.");
@@ -272,7 +272,7 @@ namespace AITool
                         //call urls
                         foreach (string url in AQI.cam.trigger_urls)
                         {
-                            string tmp = AITOOL.ReplaceParams(AQI.cam, AQI.CurImg, url);
+                            string tmp = AITOOL.ReplaceParams(AQI.cam, AQI.Hist, AQI.CurImg, url);
                             urls.Add(tmp);
 
                         }
@@ -286,7 +286,7 @@ namespace AITool
                         //call urls
                         foreach (string url in AQI.cam.cancel_urls)
                         {
-                            string tmp = AITOOL.ReplaceParams(AQI.cam, AQI.CurImg, url);
+                            string tmp = AITOOL.ReplaceParams(AQI.cam, AQI.Hist, AQI.CurImg, url);
                             urls.Add(tmp);
 
                         }
@@ -302,8 +302,8 @@ namespace AITool
                         string param = "";
                         try
                         {
-                            run = AITOOL.ReplaceParams(AQI.cam, AQI.CurImg, AQI.cam.Action_RunProgramString);
-                            param = AITOOL.ReplaceParams(AQI.cam, AQI.CurImg, AQI.cam.Action_RunProgramArgsString);
+                            run = AITOOL.ReplaceParams(AQI.cam, AQI.Hist, AQI.CurImg, AQI.cam.Action_RunProgramString);
+                            param = AITOOL.ReplaceParams(AQI.cam, AQI.Hist, AQI.CurImg, AQI.cam.Action_RunProgramArgsString);
                             Global.Log($"{CurSrv} -    Starting external app - Camera={AQI.cam.name} run='{run}', param='{param}'");
                             Process.Start(run, param);
                         }
@@ -322,7 +322,7 @@ namespace AITool
                         {
 
                             //object1, object2 ; soundfile.wav | object1, object2 ; anotherfile.wav | * ; defaultsound.wav
-                            string snds = AITOOL.ReplaceParams(AQI.cam, AQI.CurImg, AQI.cam.Action_Sounds);
+                            string snds = AITOOL.ReplaceParams(AQI.cam, AQI.Hist, AQI.CurImg, AQI.cam.Action_Sounds);
 
                             List<string> items = Global.Split(snds, "|");
 
@@ -373,13 +373,13 @@ namespace AITool
                         string payload = "";
                         if (AQI.Trigger)
                         {
-                            topic = AITOOL.ReplaceParams(AQI.cam, AQI.CurImg, AQI.cam.Action_mqtt_topic);
-                            payload = AITOOL.ReplaceParams(AQI.cam, AQI.CurImg, AQI.cam.Action_mqtt_payload);
+                            topic = AITOOL.ReplaceParams(AQI.cam, AQI.Hist, AQI.CurImg, AQI.cam.Action_mqtt_topic);
+                            payload = AITOOL.ReplaceParams(AQI.cam, AQI.Hist, AQI.CurImg, AQI.cam.Action_mqtt_payload);
                         }
                         else
                         {
-                            topic = AITOOL.ReplaceParams(AQI.cam, AQI.CurImg, AQI.cam.Action_mqtt_topic_cancel);
-                            payload = AITOOL.ReplaceParams(AQI.cam, AQI.CurImg, AQI.cam.Action_mqtt_payload_cancel);
+                            topic = AITOOL.ReplaceParams(AQI.cam, AQI.Hist, AQI.CurImg, AQI.cam.Action_mqtt_topic_cancel);
+                            payload = AITOOL.ReplaceParams(AQI.cam, AQI.Hist, AQI.CurImg, AQI.cam.Action_mqtt_payload_cancel);
                         }
 
                         List<string> topics = Global.Split(topic, ";|");
@@ -402,7 +402,7 @@ namespace AITool
                     if (AQI.cam.telegram_enabled && AQI.Trigger)
                     {
 
-                        string tmp = AITOOL.ReplaceParams(AQI.cam, AQI.CurImg, AQI.cam.telegram_caption);
+                        string tmp = AITOOL.ReplaceParams(AQI.cam, AQI.Hist, AQI.CurImg, AQI.cam.telegram_caption);
 
                             if (!await TelegramUpload(AQI))
                             {
@@ -463,7 +463,7 @@ namespace AITool
 
             try
             {
-                Global.Log("Merging image annotations: " + AQI.CurImg.image_path);
+                Global.Log($"{CurSrv} - Merging image annotations: " + AQI.CurImg.image_path);
 
                 if (System.IO.File.Exists(AQI.CurImg.image_path))
                 {
@@ -658,17 +658,17 @@ namespace AITool
                                 if (Success)
                                 {
                                     img.Save(OutputImageFile, jpgEncoder, myEncoderParameters);
-                                    Global.Log($"Merged {countr} detections in {sw.ElapsedMilliseconds}ms into image {OutputImageFile}");
+                                    Global.Log($"{CurSrv} - Merged {countr} detections in {sw.ElapsedMilliseconds}ms into image {OutputImageFile}");
                                 }
                                 else
                                 {
-                                    Global.Log($"Error: Could not gain access to write merged file {OutputImageFile}");
+                                    Global.Log($"{CurSrv} - Error: Could not gain access to write merged file {OutputImageFile}");
                                 }
 
                             }
                             else
                             {
-                                Global.Log($"No detections to merge.  Time={sw.ElapsedMilliseconds}ms, {OutputImageFile}");
+                                Global.Log($"{CurSrv} - No detections to merge.  Time={sw.ElapsedMilliseconds}ms, {OutputImageFile}");
 
                             }
 
@@ -679,13 +679,13 @@ namespace AITool
                 }
                 else
                 {
-                    Global.Log("Error: could not find last image with detections: " + AQI.CurImg.image_path);
+                    Global.Log($"{CurSrv} - Error: could not find last image with detections: " + AQI.CurImg.image_path);
                 }
             }
             catch (Exception ex)
             {
 
-                Global.Log($"Error: Detections='{detections}', LastText='{lasttext}', LastPostions='{lastposition}' - " + Global.ExMsg(ex));
+                Global.Log($"{CurSrv} - Error: Detections='{detections}', LastText='{lasttext}', LastPostions='{lastposition}' - " + Global.ExMsg(ex));
             }
 
             return OutputImageFile;
@@ -704,27 +704,27 @@ namespace AITool
             return null;
         }
 
-        public bool CopyImage(Camera cam, ClsImageQueueItem CurImg, ref string dest_path)
+        public bool CopyImage(ClsTriggerActionQueueItem AQI, ref string dest_path)
         {
             bool ret = false;
 
             try
             {
-                string netfld = AITOOL.ReplaceParams(cam, CurImg, cam.Action_network_folder);
+                string netfld = AITOOL.ReplaceParams(AQI.cam, AQI.Hist, AQI.CurImg, AQI.cam.Action_network_folder);
 
-                string ext = Path.GetExtension(CurImg.image_path);
-                string filename = AITOOL.ReplaceParams(cam, CurImg, cam.Action_network_folder_filename).Trim() + ext;
+                string ext = Path.GetExtension(AQI.CurImg.image_path);
+                string filename = AITOOL.ReplaceParams(AQI.cam, AQI.Hist, AQI.CurImg, AQI.cam.Action_network_folder_filename).Trim() + ext;
 
                 dest_path = System.IO.Path.Combine(netfld, filename);
 
-                Global.Log($"{CurSrv} -   File copying from {CurImg.image_path} to {dest_path}");
+                Global.Log($"{CurSrv} -   File copying from {AQI.CurImg.image_path} to {dest_path}");
 
                 if (!Directory.Exists(netfld))
                 {
                     Directory.CreateDirectory(netfld);
                 }
 
-                System.IO.File.Copy(CurImg.image_path, dest_path, true);
+                System.IO.File.Copy(AQI.CurImg.image_path, dest_path, true);
 
                 ret = true;
 
@@ -732,7 +732,7 @@ namespace AITool
             }
             catch (Exception ex)
             {
-                Global.Log($"{CurSrv} - ERROR: Could not copy image {CurImg.image_path} to network path {dest_path}: {Global.ExMsg(ex)}");
+                Global.Log($"{CurSrv} - ERROR: Could not copy image {AQI.CurImg.image_path} to network path {dest_path}: {Global.ExMsg(ex)}");
             }
 
             return ret;
