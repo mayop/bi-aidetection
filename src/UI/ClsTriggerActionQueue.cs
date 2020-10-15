@@ -240,8 +240,9 @@ namespace AITool
 
                     if (AQI.cam.Action_image_merge_detections && AQI.Trigger)
                     {
-                        tmpfile = await MergeImageAnnotations(AQI);
-                        
+                        //tmpfile = await MergeImageAnnotations(AQI);
+                        tmpfile = await MayoFunc.MergeImageAnnotations(AQI);
+
                         if (AQI.CurImg.image_path.ToLower() != tmpfile.ToLower() && System.IO.File.Exists(tmpfile))  //it wont exist if no detections or failure...
                             AQI.CurImg = new ClsImageQueueItem(tmpfile, 1);
                     }
@@ -401,7 +402,6 @@ namespace AITool
                     //upload to telegram
                     if (AQI.cam.telegram_enabled && AQI.Trigger)
                     {
-
                         string tmp = AITOOL.ReplaceParams(AQI.cam, AQI.Hist, AQI.CurImg, AQI.cam.telegram_caption);
 
                             if (!await TelegramUpload(AQI))
@@ -416,6 +416,27 @@ namespace AITool
 
                     }
 
+                    if (AQI.cam.telegram_mask_enabled && AQI.Trigger)
+                    {
+                        string telegram_file = "temp\\" + Path.GetFileName(AQI.CurImg.image_path).Insert((Path.GetFileName(AQI.CurImg.image_path).Length - 4), "_telegram");
+
+                        if (System.IO.File.Exists(telegram_file))
+                        {
+                            if (!await MayoFunc.SendImageToTelegram(AQI))
+                            {
+                                ret = false;
+                                Global.Log($"{CurSrv} -    -> ERROR sending image to Telegram Mask.");
+                            }
+                            else
+                            {
+                                Global.Log($"{CurSrv} -    -> Sent image to Telegram Mask.");
+                            }
+                        }
+                        else
+                        {
+                            Global.Log($"{CurSrv} -    -> No Telegram Mask Image Found.");
+                        }
+                    }
 
                     if (AQI.Trigger)
                     {

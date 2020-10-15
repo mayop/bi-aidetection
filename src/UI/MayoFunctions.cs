@@ -35,6 +35,7 @@ namespace AITool
             string lasttext = "";
             string lastposition = "";
             string OutputImageFile = "";
+            bool bSendTelegramMessage = false;
 
             try
             {
@@ -59,6 +60,11 @@ namespace AITool
 
                             if (AQI.Hist != null && !string.IsNullOrEmpty(AQI.Hist.PredictionsJSON))
                             {
+                                System.Drawing.Rectangle rect;
+                                System.Drawing.SizeF size;
+                                Brush rectBrush;
+                                Color boxColor;                                
+
                                 List<ClsPrediction> predictions = new List<ClsPrediction>();
 
                                 predictions = Global.SetJSONString<List<ClsPrediction>>(AQI.Hist.PredictionsJSON);
@@ -74,24 +80,15 @@ namespace AITool
 
                                     if (Merge)
                                     {
-                                        if (pred.Result == ResultType.Relevant)
-                                        {
-                                            color = System.Drawing.Color.FromArgb(AppSettings.Settings.RectRelevantColorAlpha, AppSettings.Settings.RectRelevantColor);
-                                        }
-                                        else if (pred.Result == ResultType.DynamicMasked || pred.Result == ResultType.ImageMasked || pred.Result == ResultType.StaticMasked)
-                                        {
-                                            color = System.Drawing.Color.FromArgb(AppSettings.Settings.RectMaskedColorAlpha, AppSettings.Settings.RectMaskedColor);
-                                        }
-                                        else
-                                        {
-                                            color = System.Drawing.Color.FromArgb(AppSettings.Settings.RectIrrelevantColorAlpha, AppSettings.Settings.RectIrrelevantColor);
-                                        }
+                                        lasttext = pred.ToString();
+                                        //lasttext = $"{cam.last_detections[i]} {String.Format(AppSettings.Settings.DisplayPercentageFormat, AQI.cam.last_confidences[i] * 100)}";  
 
                                         int xmin = pred.xmin + AQI.cam.XOffset;
                                         int ymin = pred.ymin + AQI.cam.YOffset;
                                         int xmax = pred.xmax;
                                         int ymax = pred.ymax;
 
+                                        /*
                                         System.Drawing.Rectangle rect = new System.Drawing.Rectangle(xmin, ymin, xmax - xmin, ymax - ymin);
 
                                         using (Pen pen = new Pen(color, AppSettings.Settings.RectBorderWidth))
@@ -114,12 +111,41 @@ namespace AITool
                                         g.DrawString(lasttext, new Font(AppSettings.Settings.RectDetectionTextFont, AppSettings.Settings.RectDetectionTextSize), Brushes.Black, rect); //draw detection text
 
                                         g.Flush();
+                                        */
+
+                                        if (AQI.cam.telegram_mask_enabled && !bSendTelegramMessage)
+                                        {
+                                            bSendTelegramMessage ^= this.TelegramOutsideMask(AQI.cam.name, xmin, xmax, ymin, ymax, img.Width, img.Height);
+                                        }
+
+                                        int penSize = 2;
+                                        if (img.Height > 1200) { penSize = 4; }
+                                        else if (img.Height >= 800 && img.Height <= 1200) { penSize = 3; }
+
+                                        boxColor = Color.FromArgb(150, this.GetBoxColor(AQI.cam.last_detections[countr]));
+                                        rect = new System.Drawing.Rectangle(xmin, ymin, xmax - xmin, ymax - ymin);
+                                        using (Pen pen = new Pen(boxColor, penSize)) { g.DrawRectangle(pen, rect); } //draw rectangle
+
+                                        // Text Color       
+                                        Brush textColor = (boxColor.GetBrightness() > 0.5 ? Brushes.Black : Brushes.White);
+
+                                        float fontSize = AppSettings.Settings.RectDetectionTextSize * ((float)img.Height / 1080); // Scale for image sizes
+                                        if (fontSize < 8) { fontSize = 8; }
+                                        Font textFont = new Font(AppSettings.Settings.RectDetectionTextFont, fontSize);
+
+                                        //object name text below rectangle
+                                        rect = new System.Drawing.Rectangle(xmin - 1, ymax, (int)img.Width, (int)img.Height); //sets bounding box for drawn text
+                                        rectBrush = new SolidBrush(boxColor); //sets background rectangle color
+
+                                        size = g.MeasureString(lasttext, textFont); //finds size of text to draw the background rectangle
+                                        g.FillRectangle(rectBrush, xmin - 1, ymax, size.Width, size.Height); //draw background rectangle for detection text
+                                        g.DrawString(lasttext, textFont, textColor, rect); //draw detection text
+
+                                        g.Flush();
 
                                         countr++;
                                     }
-
                                 }
-
                             }
                             else
                             {
@@ -203,16 +229,8 @@ namespace AITool
 
                                 GraphicsState gs = g.Save();
 
-                                ImageCodecInfo jpgEncoder = this.GetImageEncoder(ImageFormat.Jpeg);
-
-                                // Create an Encoder object based on the GUID  
-                                // for the Quality parameter category.  
+                                ImageCodecInfo jpgEncoder = this.GetImageEncoder(ImageFormat.Jpeg);             
                                 System.Drawing.Imaging.Encoder myEncoder = System.Drawing.Imaging.Encoder.Quality;
-
-                                // Create an EncoderParameters object.  
-                                // An EncoderParameters object has an array of EncoderParameter  
-                                // objects. In this case, there is only one  
-                                // EncoderParameter object in the array.  
                                 EncoderParameters myEncoderParameters = new EncoderParameters(1);
 
                                 EncoderParameter myEncoderParameter = new EncoderParameter(myEncoder, AQI.cam.Action_image_merge_jpegquality);  //100=least compression, largest file size, best quality
@@ -233,6 +251,12 @@ namespace AITool
                                 if (Success)
                                 {
                                     img.Save(OutputImageFile, jpgEncoder, myEncoderParameters);
+                                    if (AQI.cam.telegram_mask_enabled && bSendTelegramMessage)
+                                    {
+                                        string telegram_file = "temp\\" + Path.GetFileName(OutputImageFile).Insert((Path.GetFileName(OutputImageFile).Length - 4), "_telegram");
+                                        img.Save(telegram_file, jpgEncoder, myEncoderParameters);
+                                    }
+                                    
                                     Global.Log($"Merged {countr} detections in {sw.ElapsedMilliseconds}ms into image {OutputImageFile}");
                                 }
                                 else
@@ -246,11 +270,8 @@ namespace AITool
                                 Global.Log($"No detections to merge.  Time={sw.ElapsedMilliseconds}ms, {OutputImageFile}");
 
                             }
-
                         }
-
                     }
-
                 }
                 else
                 {
@@ -259,7 +280,6 @@ namespace AITool
             }
             catch (Exception ex)
             {
-
                 Global.Log($"Error: Detections='{detections}', LastText='{lasttext}', LastPostions='{lastposition}' - " + Global.ExMsg(ex));
             }
 
@@ -514,13 +534,16 @@ namespace AITool
         }
 
         // ************************************************************************
-        public async Task SendImageToTelegram(Camera cam, ClsImageQueueItem CurImg)
+        public async Task<bool> SendImageToTelegram(ClsTriggerActionQueueItem AQI)
         {
-            string telegram_file = "temp\\" + Path.GetFileName(CurImg.image_path).Insert((Path.GetFileName(CurImg.image_path).Length - 4), "_telegram");            
+            bool bReturn = false;
+
+            string telegram_file = "temp\\" + Path.GetFileName(AQI.CurImg.image_path).Insert((Path.GetFileName(AQI.CurImg.image_path).Length - 4), "_telegram");            
 
             if (AppSettings.Settings.telegram_chatids.Count > 0 && AppSettings.Settings.telegram_token != "" && File.Exists(telegram_file))
             {
-                string image_caption = AITOOL.ReplaceParams(cam, CurImg, cam.telegram_caption);
+                //string image_caption = AITOOL.ReplaceParams(cam, CurImg, cam.telegram_caption);
+                string image_caption = AITOOL.ReplaceParams(AQI.cam, AQI.Hist, AQI.CurImg, AQI.cam.telegram_caption);
                 //telegram upload sometimes fails               
                 try
                 {
@@ -539,6 +562,8 @@ namespace AITool
                             Log($"      uploading image to chat \"{chatid}\"");
                             await bot.SendPhotoAsync(chatid, file_id, image_caption);
                         }
+
+                        bReturn = true;
                     }
 
                     if (File.Exists(telegram_file)) { File.Delete(telegram_file); }
@@ -549,6 +574,8 @@ namespace AITool
                 }
 
             }
+
+            return bReturn;
         }
 
         // ************************************************************************

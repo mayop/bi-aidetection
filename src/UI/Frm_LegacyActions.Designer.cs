@@ -33,6 +33,9 @@
             this.btnCancel = new System.Windows.Forms.Button();
             this.btnSave = new System.Windows.Forms.Button();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.cb_mask_telegram = new System.Windows.Forms.CheckBox();
+            this.tb_jpeg_merge_quality = new System.Windows.Forms.TextBox();
+            this.label2 = new System.Windows.Forms.Label();
             this.cb_queue_actions = new System.Windows.Forms.CheckBox();
             this.cb_mergeannotations = new System.Windows.Forms.CheckBox();
             this.tb_network_folder_filename = new System.Windows.Forms.TextBox();
@@ -68,9 +71,6 @@
             this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
             this.label3 = new System.Windows.Forms.Label();
             this.btTest = new System.Windows.Forms.Button();
-            this.label2 = new System.Windows.Forms.Label();
-            this.tb_jpeg_merge_quality = new System.Windows.Forms.TextBox();
-            this.cb_mask_telegram = new System.Windows.Forms.CheckBox();
             this.groupBox1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -150,6 +150,37 @@
             this.groupBox1.TabIndex = 4;
             this.groupBox1.TabStop = false;
             // 
+            // cb_mask_telegram
+            // 
+            this.cb_mask_telegram.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.cb_mask_telegram.AutoSize = true;
+            this.cb_mask_telegram.Location = new System.Drawing.Point(781, 51);
+            this.cb_mask_telegram.Name = "cb_mask_telegram";
+            this.cb_mask_telegram.Size = new System.Drawing.Size(105, 19);
+            this.cb_mask_telegram.TabIndex = 47;
+            this.cb_mask_telegram.Text = "Telegram Mask";
+            this.cb_mask_telegram.UseVisualStyleBackColor = true;
+            // 
+            // tb_jpeg_merge_quality
+            // 
+            this.tb_jpeg_merge_quality.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.tb_jpeg_merge_quality.Location = new System.Drawing.Point(824, 17);
+            this.tb_jpeg_merge_quality.Name = "tb_jpeg_merge_quality";
+            this.tb_jpeg_merge_quality.Size = new System.Drawing.Size(62, 23);
+            this.tb_jpeg_merge_quality.TabIndex = 49;
+            this.toolTip1.SetToolTip(this.tb_jpeg_merge_quality, "The larger the number, the higher the image quality AND SIZE.   If you lower this" +
+        " number to\r\n50 or below, images will be smaller and sent to Telegram faster.");
+            // 
+            // label2
+            // 
+            this.label2.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.label2.AutoSize = true;
+            this.label2.Location = new System.Drawing.Point(638, 21);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(180, 15);
+            this.label2.TabIndex = 48;
+            this.label2.Text = "Merge JPEG Save Quality (1-100):";
+            // 
             // cb_queue_actions
             // 
             this.cb_queue_actions.AutoSize = true;
@@ -208,7 +239,7 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.tb_telegram_caption.Location = new System.Drawing.Point(263, 48);
             this.tb_telegram_caption.Name = "tb_telegram_caption";
-            this.tb_telegram_caption.Size = new System.Drawing.Size(623, 23);
+            this.tb_telegram_caption.Size = new System.Drawing.Size(504, 23);
             this.tb_telegram_caption.TabIndex = 42;
             // 
             // linkLabelMqttSettings
@@ -514,36 +545,6 @@
             this.btTest.Text = "Test";
             this.btTest.UseVisualStyleBackColor = true;
             this.btTest.Click += new System.EventHandler(this.btTest_Click);
-            // cb_mask_telegram
-            // 
-            this.cb_mask_telegram.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.cb_mask_telegram.AutoSize = true;
-            this.cb_mask_telegram.Location = new System.Drawing.Point(588, 18);
-            this.cb_mask_telegram.Name = "cb_mask_telegram";
-            this.cb_mask_telegram.Size = new System.Drawing.Size(105, 19);
-            this.cb_mask_telegram.TabIndex = 47;
-            this.cb_mask_telegram.Text = "Telegram Mask";
-            this.cb_mask_telegram.UseVisualStyleBackColor = true;
-            // 
-            // label2
-            // 
-            this.label2.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(638, 21);
-            this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(180, 15);
-            this.label2.TabIndex = 48;
-            this.label2.Text = "Merge JPEG Save Quality (1-100):";
-            // 
-            // tb_jpeg_merge_quality
-            // 
-            this.tb_jpeg_merge_quality.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.tb_jpeg_merge_quality.Location = new System.Drawing.Point(824, 17);
-            this.tb_jpeg_merge_quality.Name = "tb_jpeg_merge_quality";
-            this.tb_jpeg_merge_quality.Size = new System.Drawing.Size(62, 23);
-            this.tb_jpeg_merge_quality.TabIndex = 49;
-            this.toolTip1.SetToolTip(this.tb_jpeg_merge_quality, "The larger the number, the higher the image quality AND SIZE.   If you lower this" +
-        " number to\r\n50 or below, images will be smaller and sent to Telegram faster.");
             // 
             // Frm_LegacyActions
             // 
@@ -557,7 +558,7 @@
             this.Controls.Add(this.btnCancel);
             this.Controls.Add(this.btnSave);
             this.Font = new System.Drawing.Font("Segoe UI", 9F);
-            this.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.Margin = new System.Windows.Forms.Padding(2);
             this.Name = "Frm_LegacyActions";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "Actions";
