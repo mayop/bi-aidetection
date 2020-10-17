@@ -88,31 +88,6 @@ namespace AITool
                                         int xmax = pred.xmax;
                                         int ymax = pred.ymax;
 
-                                        /*
-                                        System.Drawing.Rectangle rect = new System.Drawing.Rectangle(xmin, ymin, xmax - xmin, ymax - ymin);
-
-                                        using (Pen pen = new Pen(color, AppSettings.Settings.RectBorderWidth))
-                                        {
-                                            g.DrawRectangle(pen, rect); //draw rectangle
-                                        }
-
-                                        //we need this since people can change the border width in the json file
-                                        int halfbrd = AppSettings.Settings.RectBorderWidth / 2;
-
-                                        //object name text below rectangle
-                                        rect = new System.Drawing.Rectangle(xmin - halfbrd, ymax + halfbrd, img.Width, img.Height); //sets bounding box for drawn text
-
-                                        Brush brush = new SolidBrush(color); //sets background rectangle color
-
-                                        lasttext = pred.ToString();
-
-                                        System.Drawing.SizeF size = g.MeasureString(lasttext, new Font(AppSettings.Settings.RectDetectionTextFont, AppSettings.Settings.RectDetectionTextSize)); //finds size of text to draw the background rectangle
-                                        g.FillRectangle(brush, xmin - halfbrd, ymax + halfbrd, size.Width, size.Height); //draw grey background rectangle for detection text
-                                        g.DrawString(lasttext, new Font(AppSettings.Settings.RectDetectionTextFont, AppSettings.Settings.RectDetectionTextSize), Brushes.Black, rect); //draw detection text
-
-                                        g.Flush();
-                                        */
-
                                         if (AQI.cam.telegram_mask_enabled && !bSendTelegramMessage)
                                         {
                                             bSendTelegramMessage ^= this.TelegramOutsideMask(AQI.cam.name, xmin, xmax, ymin, ymax, img.Width, img.Height);
@@ -142,7 +117,6 @@ namespace AITool
                                         g.DrawString(lasttext, textFont, textColor, rect); //draw detection text
 
                                         g.Flush();
-
                                         countr++;
                                     }
                                 }
