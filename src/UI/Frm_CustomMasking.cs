@@ -5,6 +5,7 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Windows.Forms;
+using static AITool.AITOOL;
 
 namespace AITool
 {
@@ -73,7 +74,7 @@ namespace AITool
             }
             catch (Exception ex)
             {
-                Global.Log("Error: " + Global.ExMsg(ex));
+                Log("Error: " + Global.ExMsg(ex));
             }
         }
 
@@ -408,7 +409,7 @@ namespace AITool
                 this.DialogResult = DialogResult.OK;
             }
             catch(Exception ex) {
-                Global.Log("Error: An error occured saving custom mask with file name: " + _maskfilename + ex.ToString());
+                Log("Error: An error occurred saving custom mask with file name: " + _maskfilename + ex.ToString());
             }
             finally
             {
