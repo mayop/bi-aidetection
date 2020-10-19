@@ -424,16 +424,16 @@ namespace AITool
                             if (!await MayoFunc.SendImageToTelegram(AQI))
                             {
                                 ret = false;
-                                Global.Log($"{CurSrv} -    -> ERROR sending image to Telegram Mask.");
+                                Log($"{CurSrv} -    -> ERROR sending image to Telegram Mask.");
                             }
                             else
                             {
-                                Global.Log($"{CurSrv} -    -> Sent image to Telegram Mask.");
+                                Log($"{CurSrv} -    -> Sent image to Telegram Mask.");
                             }
                         }
                         else
                         {
-                            Global.Log($"{CurSrv} -    -> No Telegram Mask Image Found.");
+                            Log($"{CurSrv} -    -> No Telegram Mask Image Found.");
                         }
                     }
 

@@ -39,7 +39,7 @@ namespace AITool
 
             try
             {
-                Global.Log("Merging image annotations: " + AQI.CurImg.image_path);
+                Global.LogMessage("Merging image annotations: " + AQI.CurImg.image_path);
 
                 if (System.IO.File.Exists(AQI.CurImg.image_path))
                 {
@@ -83,10 +83,10 @@ namespace AITool
                                         lasttext = pred.ToString();
                                         //lasttext = $"{cam.last_detections[i]} {String.Format(AppSettings.Settings.DisplayPercentageFormat, AQI.cam.last_confidences[i] * 100)}";  
 
-                                        int xmin = pred.xmin + AQI.cam.XOffset;
-                                        int ymin = pred.ymin + AQI.cam.YOffset;
-                                        int xmax = pred.xmax;
-                                        int ymax = pred.ymax;
+                                        int xmin = pred.XMin + AQI.cam.XOffset;
+                                        int ymin = pred.YMin + AQI.cam.YOffset;
+                                        int xmax = pred.XMax;
+                                        int ymax = pred.YMax;
 
                                         if (AQI.cam.telegram_mask_enabled && !bSendTelegramMessage)
                                         {
@@ -192,7 +192,7 @@ namespace AITool
 
                                     g.Flush();
 
-                                    //Global.Log($"...{i}, LastText='{lasttext}' - LastPosition='{lastposition}'");
+                                    //Global.LogMessage($"...{i}, LastText='{lasttext}' - LastPosition='{lastposition}'");
                                 }
 
                             }
@@ -231,17 +231,17 @@ namespace AITool
                                         img.Save(telegram_file, jpgEncoder, myEncoderParameters);
                                     }
                                     
-                                    Global.Log($"Merged {countr} detections in {sw.ElapsedMilliseconds}ms into image {OutputImageFile}");
+                                    Global.LogMessage($"Merged {countr} detections in {sw.ElapsedMilliseconds}ms into image {OutputImageFile}");
                                 }
                                 else
                                 {
-                                    Global.Log($"Error: Could not gain access to write merged file {OutputImageFile}");
+                                    Global.LogMessage($"Error: Could not gain access to write merged file {OutputImageFile}");
                                 }
 
                             }
                             else
                             {
-                                Global.Log($"No detections to merge.  Time={sw.ElapsedMilliseconds}ms, {OutputImageFile}");
+                                Global.LogMessage($"No detections to merge.  Time={sw.ElapsedMilliseconds}ms, {OutputImageFile}");
 
                             }
                         }
@@ -249,12 +249,12 @@ namespace AITool
                 }
                 else
                 {
-                    Global.Log("Error: could not find last image with detections: " + AQI.CurImg.image_path);
+                    Global.LogMessage("Error: could not find last image with detections: " + AQI.CurImg.image_path);
                 }
             }
             catch (Exception ex)
             {
-                Global.Log($"Error: Detections='{detections}', LastText='{lasttext}', LastPostions='{lastposition}' - " + Global.ExMsg(ex));
+                Global.LogMessage($"Error: Detections='{detections}', LastText='{lasttext}', LastPostions='{lastposition}' - " + Global.ExMsg(ex));
             }
 
             return OutputImageFile;
@@ -271,7 +271,7 @@ namespace AITool
 
             try
             {
-                Global.Log("Merging image annotations: " + AQI.CurImg.image_path);
+                Global.LogMessage("Merging image annotations: " + AQI.CurImg.image_path);
 
                 if (File.Exists(AQI.CurImg.image_path))
                 {
@@ -371,16 +371,16 @@ namespace AITool
                                         img.Save(telegram_file, jpgEncoder, myEncoderParameters);
                                     }                                    
 
-                                    Global.Log($"Merged {countr} detections in {sw.ElapsedMilliseconds}ms into image {OutputImageFile}");
+                                    Global.LogMessage($"Merged {countr} detections in {sw.ElapsedMilliseconds}ms into image {OutputImageFile}");
                                 }
                                 else
                                 {
-                                    Global.Log($"Error: Could not gain access to write merged file {OutputImageFile}");
+                                    Global.LogMessage($"Error: Could not gain access to write merged file {OutputImageFile}");
                                 }
                             }
                             else
                             {
-                                Global.Log($"No detections to merge.  Time={sw.ElapsedMilliseconds}ms, {OutputImageFile}");
+                                Global.LogMessage($"No detections to merge.  Time={sw.ElapsedMilliseconds}ms, {OutputImageFile}");
                             }
                         }
                         */
@@ -388,12 +388,12 @@ namespace AITool
                 }
                 else
                 {
-                    Global.Log("Error: could not find last image with detections: " + cam.last_image_file_with_detections);
+                    Global.LogMessage("Error: could not find last image with detections: " + cam.last_image_file_with_detections);
                 }
             }
             catch (Exception ex)
             {
-                Global.Log($"Error: Detections='{detections}', LastText='{lasttext}', LastPostions='{lastposition}' - " + Global.ExMsg(ex));
+                Global.LogMessage($"Error: Detections='{detections}', LastText='{lasttext}', LastPostions='{lastposition}' - " + Global.ExMsg(ex));
             }
         }
 
@@ -647,7 +647,7 @@ namespace AITool
         // ************************************************************************
         public void Log(string strMessage)
         {
-            Global.Log(strMessage);
+            Global.LogMessage(strMessage);
         }
 
         // ************************************************************************
