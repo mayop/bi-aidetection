@@ -101,6 +101,7 @@ namespace AITool
             this.detailsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.refreshToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.dynamicMaskDetailsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.locateInLogToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.lbl_objects = new System.Windows.Forms.Label();
             this.pictureBox1 = new System.Windows.Forms.PictureBox();
             this.tabCameras = new System.Windows.Forms.TabPage();
@@ -238,6 +239,12 @@ namespace AITool
             this.toolStripSeparator4 = new System.Windows.Forms.ToolStripSeparator();
             this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
             this.openToolStripButton = new System.Windows.Forms.ToolStripButton();
+            this.toolStripSeparator7 = new System.Windows.Forms.ToolStripSeparator();
+            this.toolStripButtonReload = new System.Windows.Forms.ToolStripButton();
+            this.toolStripSeparator5 = new System.Windows.Forms.ToolStripSeparator();
+            this.toolStripButtonPauseLog = new System.Windows.Forms.ToolStripButton();
+            this.toolStripSeparator6 = new System.Windows.Forms.ToolStripSeparator();
+            this.toolStripSeparator8 = new System.Windows.Forms.ToolStripSeparator();
             this.groupBox7 = new System.Windows.Forms.GroupBox();
             this.folv_log = new BrightIdeasSoftware.FastObjectListView();
             this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
@@ -1051,9 +1058,10 @@ namespace AITool
             this.testDetectionAgainToolStripMenuItem,
             this.detailsToolStripMenuItem,
             this.refreshToolStripMenuItem,
-            this.dynamicMaskDetailsToolStripMenuItem});
+            this.dynamicMaskDetailsToolStripMenuItem,
+            this.locateInLogToolStripMenuItem});
             this.contextMenuStripHistory.Name = "contextMenuStripHistory";
-            this.contextMenuStripHistory.Size = new System.Drawing.Size(191, 92);
+            this.contextMenuStripHistory.Size = new System.Drawing.Size(191, 114);
             // 
             // testDetectionAgainToolStripMenuItem
             // 
@@ -1083,6 +1091,13 @@ namespace AITool
             this.dynamicMaskDetailsToolStripMenuItem.Text = "Dynamic Mask Details";
             this.dynamicMaskDetailsToolStripMenuItem.Click += new System.EventHandler(this.dynamicMaskDetailsToolStripMenuItem_Click);
             // 
+            // locateInLogToolStripMenuItem
+            // 
+            this.locateInLogToolStripMenuItem.Name = "locateInLogToolStripMenuItem";
+            this.locateInLogToolStripMenuItem.Size = new System.Drawing.Size(190, 22);
+            this.locateInLogToolStripMenuItem.Text = "Locate in log";
+            this.locateInLogToolStripMenuItem.Click += new System.EventHandler(this.locateInLogToolStripMenuItem_Click);
+            // 
             // lbl_objects
             // 
             this.lbl_objects.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
@@ -1093,7 +1108,7 @@ namespace AITool
             this.lbl_objects.Margin = new System.Windows.Forms.Padding(6, 0, 3, 0);
             this.lbl_objects.Name = "lbl_objects";
             this.lbl_objects.Padding = new System.Windows.Forms.Padding(6, 0, 0, 0);
-            this.lbl_objects.Size = new System.Drawing.Size(736, 20);
+            this.lbl_objects.Size = new System.Drawing.Size(772, 20);
             this.lbl_objects.TabIndex = 14;
             this.lbl_objects.Text = "No selection";
             this.lbl_objects.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
@@ -1106,7 +1121,7 @@ namespace AITool
             this.pictureBox1.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Zoom;
             this.pictureBox1.Location = new System.Drawing.Point(4, 23);
             this.pictureBox1.Name = "pictureBox1";
-            this.pictureBox1.Size = new System.Drawing.Size(733, 379);
+            this.pictureBox1.Size = new System.Drawing.Size(769, 379);
             this.pictureBox1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this.pictureBox1.TabIndex = 6;
             this.pictureBox1.TabStop = false;
@@ -2253,7 +2268,7 @@ namespace AITool
             this.dbLayoutPanel3.ColumnCount = 3;
             this.dbLayoutPanel3.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 84.57375F));
             this.dbLayoutPanel3.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 15.42625F));
-            this.dbLayoutPanel3.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 205F));
+            this.dbLayoutPanel3.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 223F));
             this.dbLayoutPanel3.Controls.Add(this.cb_send_errors, 0, 0);
             this.dbLayoutPanel3.Controls.Add(this.btn_enabletelegram, 1, 0);
             this.dbLayoutPanel3.Controls.Add(this.btn_disabletelegram, 2, 0);
@@ -2278,7 +2293,7 @@ namespace AITool
             // btn_enabletelegram
             // 
             this.btn_enabletelegram.Anchor = System.Windows.Forms.AnchorStyles.None;
-            this.btn_enabletelegram.Location = new System.Drawing.Point(565, 21);
+            this.btn_enabletelegram.Location = new System.Drawing.Point(548, 21);
             this.btn_enabletelegram.Name = "btn_enabletelegram";
             this.btn_enabletelegram.Size = new System.Drawing.Size(70, 30);
             this.btn_enabletelegram.TabIndex = 13;
@@ -2290,7 +2305,7 @@ namespace AITool
             // btn_disabletelegram
             // 
             this.btn_disabletelegram.Anchor = System.Windows.Forms.AnchorStyles.None;
-            this.btn_disabletelegram.Location = new System.Drawing.Point(718, 21);
+            this.btn_disabletelegram.Location = new System.Drawing.Point(709, 21);
             this.btn_disabletelegram.Name = "btn_disabletelegram";
             this.btn_disabletelegram.Size = new System.Drawing.Size(70, 30);
             this.btn_disabletelegram.TabIndex = 13;
@@ -2622,7 +2637,13 @@ namespace AITool
             this.toolStripDropDownButtonSettings,
             this.toolStripSeparator4,
             this.toolStripSeparator2,
-            this.openToolStripButton});
+            this.openToolStripButton,
+            this.toolStripSeparator7,
+            this.toolStripButtonReload,
+            this.toolStripSeparator5,
+            this.toolStripButtonPauseLog,
+            this.toolStripSeparator6,
+            this.toolStripSeparator8});
             this.toolStrip2.Location = new System.Drawing.Point(0, 0);
             this.toolStrip2.Name = "toolStrip2";
             this.toolStrip2.Size = new System.Drawing.Size(1027, 31);
@@ -2641,9 +2662,10 @@ namespace AITool
             this.ToolStripComboBoxSearch.BackColor = System.Drawing.SystemColors.Info;
             this.ToolStripComboBoxSearch.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(0)))), ((int)(((byte)(192)))));
             this.ToolStripComboBoxSearch.Name = "ToolStripComboBoxSearch";
-            this.ToolStripComboBoxSearch.Size = new System.Drawing.Size(250, 31);
+            this.ToolStripComboBoxSearch.Size = new System.Drawing.Size(200, 31);
             this.ToolStripComboBoxSearch.ToolTipText = "The search can be normal text OR a valid \'RegEx\' statement";
             this.ToolStripComboBoxSearch.Leave += new System.EventHandler(this.ToolStripComboBoxSearch_Leave);
+            this.ToolStripComboBoxSearch.Click += new System.EventHandler(this.ToolStripComboBoxSearch_Click);
             this.ToolStripComboBoxSearch.TextChanged += new System.EventHandler(this.ToolStripComboBoxSearch_TextChanged);
             // 
             // toolStripDropDownButton1
@@ -2823,6 +2845,48 @@ namespace AITool
             this.openToolStripButton.Text = "&Open Log File";
             this.openToolStripButton.ToolTipText = "Open Log File";
             this.openToolStripButton.Click += new System.EventHandler(this.openToolStripButton_Click);
+            // 
+            // toolStripSeparator7
+            // 
+            this.toolStripSeparator7.Name = "toolStripSeparator7";
+            this.toolStripSeparator7.Size = new System.Drawing.Size(6, 31);
+            // 
+            // toolStripButtonReload
+            // 
+            this.toolStripButtonReload.Image = ((System.Drawing.Image)(resources.GetObject("toolStripButtonReload.Image")));
+            this.toolStripButtonReload.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.toolStripButtonReload.Name = "toolStripButtonReload";
+            this.toolStripButtonReload.Size = new System.Drawing.Size(71, 28);
+            this.toolStripButtonReload.Text = "Reload";
+            this.toolStripButtonReload.ToolTipText = "Reloads the entire current log file from file without limiting the max number of " +
+    "lines.  This may make the list slower until you restart the app.";
+            this.toolStripButtonReload.Click += new System.EventHandler(this.toolStripButtonReload_ClickAsync);
+            // 
+            // toolStripSeparator5
+            // 
+            this.toolStripSeparator5.Name = "toolStripSeparator5";
+            this.toolStripSeparator5.Size = new System.Drawing.Size(6, 31);
+            // 
+            // toolStripButtonPauseLog
+            // 
+            this.toolStripButtonPauseLog.CheckOnClick = true;
+            this.toolStripButtonPauseLog.Image = ((System.Drawing.Image)(resources.GetObject("toolStripButtonPauseLog.Image")));
+            this.toolStripButtonPauseLog.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.toolStripButtonPauseLog.Name = "toolStripButtonPauseLog";
+            this.toolStripButtonPauseLog.Size = new System.Drawing.Size(66, 28);
+            this.toolStripButtonPauseLog.Text = "Pause";
+            this.toolStripButtonPauseLog.ToolTipText = "Pause log tab auto refresh";
+            this.toolStripButtonPauseLog.Click += new System.EventHandler(this.toolStripButtonPauseLog_Click);
+            // 
+            // toolStripSeparator6
+            // 
+            this.toolStripSeparator6.Name = "toolStripSeparator6";
+            this.toolStripSeparator6.Size = new System.Drawing.Size(6, 31);
+            // 
+            // toolStripSeparator8
+            // 
+            this.toolStripSeparator8.Name = "toolStripSeparator8";
+            this.toolStripSeparator8.Size = new System.Drawing.Size(6, 31);
             // 
             // groupBox7
             // 
@@ -3257,29 +3321,36 @@ namespace AITool
         private System.Windows.Forms.Button btnSaveTo;
         private BrightIdeasSoftware.FastObjectListView folv_log;
         private System.Windows.Forms.Timer LogUpdateListTimer;
+        private System.Windows.Forms.ToolStripMenuItem locateInLogToolStripMenuItem;
         private System.Windows.Forms.ToolStrip toolStrip2;
-        private System.Windows.Forms.ToolStripButton openToolStripButton;
-        private System.Windows.Forms.ToolStripSeparator toolStripSeparator;
         private System.Windows.Forms.ToolStripLabel toolStripLabel1;
         private System.Windows.Forms.ToolStripComboBox ToolStripComboBoxSearch;
         private System.Windows.Forms.ToolStripDropDownButton toolStripDropDownButton1;
         private System.Windows.Forms.ToolStripMenuItem mnu_Filter;
         private System.Windows.Forms.ToolStripMenuItem mnu_Highlight;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator3;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator;
         private System.Windows.Forms.ToolStripDropDownButton toolStripDropDownButtonSettings;
         private System.Windows.Forms.ToolStripMenuItem Chk_AutoScroll;
         private System.Windows.Forms.ToolStripMenuItem chk_filterErrors;
+        private System.Windows.Forms.ToolStripMenuItem clearRecentErrorsToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem toolStripMenuItemLogLevel;
+        private System.Windows.Forms.ToolStripMenuItem mnu_log_filter_off;
         private System.Windows.Forms.ToolStripMenuItem mnu_log_filter_fatal;
         private System.Windows.Forms.ToolStripMenuItem mnu_log_filter_error;
         private System.Windows.Forms.ToolStripMenuItem mnu_log_filter_warn;
         private System.Windows.Forms.ToolStripMenuItem mnu_log_filter_info;
         private System.Windows.Forms.ToolStripMenuItem mnu_log_filter_debug;
         private System.Windows.Forms.ToolStripMenuItem mnu_log_filter_trace;
-        private System.Windows.Forms.ToolStripMenuItem mnu_log_filter_off;
-        private System.Windows.Forms.ToolStripSeparator toolStripSeparator3;
-        private System.Windows.Forms.ToolStripMenuItem clearRecentErrorsToolStripMenuItem;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator4;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator2;
+        private System.Windows.Forms.ToolStripButton openToolStripButton;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator7;
+        private System.Windows.Forms.ToolStripButton toolStripButtonReload;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator5;
+        private System.Windows.Forms.ToolStripButton toolStripButtonPauseLog;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator6;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator8;
     }
 }
 
