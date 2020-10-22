@@ -10,7 +10,7 @@ using System.Windows.Forms;
 
 namespace AITool
 {
-    public partial class Frm_Errors:Form
+    public partial class Frm_Errors : Form
     {
         public List<ClsLogItm> errors = null;
         public Frm_Errors()
@@ -41,7 +41,7 @@ namespace AITool
             {
                 Global_GUI.ConfigureFOLV(folv_errors, typeof(ClsLogItm), null, null, "Time", SortOrder.Descending);
 
-                Global_GUI.UpdateFOLV_add(folv_errors, errors.ToArray());
+                Global_GUI.UpdateFOLV(folv_errors, errors);
 
             }
             catch (Exception)

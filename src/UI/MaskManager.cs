@@ -10,8 +10,8 @@ namespace AITool
     {
         public enum RemoveEvent
         {
-             Timer,
-             Detection
+            Timer,
+            Detection
         }
 
         private bool _maskingEnabled = false;
@@ -35,7 +35,8 @@ namespace AITool
         public List<ObjectPosition> MaskedPositions { get; set; }       //stores dynamic masked object list (created in default constructor)
 
         private DateTime _lastDetectionDate;
-        public DateTime LastDetectionDate {
+        public DateTime LastDetectionDate
+        {
             get => _lastDetectionDate;
             set
             {
@@ -140,6 +141,50 @@ namespace AITool
             }
         }
 
+        public void RemoveActiveMask(ObjectPosition op)
+        {
+            lock (_maskLockObject)
+            {
+                try
+                {
+                    //so the objectposition equals function doesnt kick in, remove it the old way
+                    for (int i = this.MaskedPositions.Count - 1; i >= 0; i--)
+                    {
+                        if (this.MaskedPositions[i].GetHashCode() == op.GetHashCode() && this.MaskedPositions[i].CreateDate == op.CreateDate)
+                        {
+                            this.MaskedPositions.RemoveAt(i);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log("Error: " + Global.ExMsg(ex));
+                }
+            }
+        }
+        public void RemoveHistoryMask(ObjectPosition op)
+        {
+            lock (_maskLockObject)
+            {
+                try
+                {
+                    //so the objectposition equals function doesnt kick in, remove it the old way
+                    for (int i = this.LastPositionsHistory.Count - 1; i >= 0; i--)
+                    {
+                        if (this.LastPositionsHistory[i].GetHashCode() == op.GetHashCode() && this.LastPositionsHistory[i].CreateDate == op.CreateDate)
+                        {
+                            this.LastPositionsHistory.RemoveAt(i);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log("Error: " + Global.ExMsg(ex));
+                }
+            }
+        }
+
+
         public MaskResultInfo CreateDynamicMask(ObjectPosition currentObject, bool forceStatic = false, bool forceDynamic = false)
         {
             using var Trace = new Trace();  //This c# 8.0 using feature will auto dispose when the function is done.
@@ -150,22 +195,12 @@ namespace AITool
             {
                 lock (_maskLockObject)  //moved this up, trying to figure out why IsMasked isnt returning correctly
                 {
-                    List<string> objects = Global.Split(this.Objects, "|;,");
 
-                    if (objects.Count > 0)
+                    if (!Global.IsInList(currentObject.Label, this.Objects))
                     {
-                        bool fnd = false;
-                        foreach (string objname in objects)
-                        {
-                            if (currentObject.Label.Trim().ToLower() == objname.ToLower())
-                                fnd = true;
-                        }
-                        if (!fnd)
-                        {
-                            Log($"Debug: Skipping mask creation because '{currentObject.Label}' is not one of the configured objects: '{this.Objects}'", "", currentObject.CameraName, currentObject.ImagePath);
-                            returnInfo.SetResults(MaskType.Unknown, MaskResult.Unwanted);
-                            return returnInfo;
-                        }
+                        Log($"Debug: Skipping mask creation because '{currentObject.Label}' is not one of the configured objects: '{this.Objects}'", "", currentObject.CameraName, currentObject.ImagePath);
+                        returnInfo.SetResults(MaskType.Unknown, MaskResult.Unwanted);
+                        return returnInfo;
                     }
 
                     Log("Debug: *** Starting new object mask processing ***", "", currentObject.CameraName, currentObject.ImagePath);
@@ -201,7 +236,7 @@ namespace AITool
                         else
                         {
                             Log($"Debug: History Threshold reached Moving {foundObject.ToString()} to masked object list", "", currentObject.CameraName, currentObject.ImagePath);
-                            
+
                             LastPositionsHistory.RemoveAt(historyIndex);
                             foundObject.CreateDate = DateTime.Now;     //reset create date as history object is converted to a mask
                             foundObject.Counter = MaskRemoveThreshold; //sets the number of detections not visiable before being eligable to remove by timer
@@ -229,7 +264,7 @@ namespace AITool
                         //Update last image that has same detection, and camera name found for existing mask
                         maskedObject.ImagePath = currentObject.ImagePath;
                         maskedObject.CameraName = currentObject.CameraName;
-                        
+
                         Log($"Debug: Found '{currentObject.Label}' (Key={currentObject.Key}) in masked_positions {maskedObject.ToString()}", "", currentObject.CameraName, currentObject.ImagePath);
 
                         MaskType type = maskedObject.IsStatic ? MaskType.Static : MaskType.Dynamic;
@@ -392,10 +427,10 @@ namespace AITool
                                     {
                                         if (maskedObject.Counter == 0 && minutes >= MaskRemoveMins)
                                         {
-                                            Log($"Debug: Removing expired ({minutes.ToString("####0.0")} mins, MaskSaveMins={MaskRemoveMins}) masked object after detection: " + maskedObject.ToString(),"", maskedObject.CameraName);
+                                            Log($"Debug: Removing expired ({minutes.ToString("####0.0")} mins, MaskSaveMins={MaskRemoveMins}) masked object after detection: " + maskedObject.ToString(), "", maskedObject.CameraName);
                                             MaskedPositions.RemoveAt(x);
                                         }
-                                        else if(maskedObject.Counter > 0) maskedObject.Counter--;
+                                        else if (maskedObject.Counter > 0) maskedObject.Counter--;
                                     }
                                     break;
                             }
@@ -423,7 +458,7 @@ namespace AITool
     public class ObjectScale
     {
         //empty default constructor required by Newtonsoft deserialization for new objects
-        public ObjectScale() {}
+        public ObjectScale() { }
 
         public bool IsScaledObject { get; set; } = false;
         public int SmallObjectMaxPercent { get; set; } = 2;

@@ -5,7 +5,7 @@ using static AITool.AITOOL;
 
 namespace AITool
 {
-    public partial class Frm_Actions:Form
+    public partial class Frm_Actions : Form
     {
         public List<CameraTriggerAction> actions = new List<CameraTriggerAction>();
         public Frm_Actions()

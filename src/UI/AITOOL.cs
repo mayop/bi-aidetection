@@ -79,7 +79,7 @@ namespace AITool
                 Console.WriteLine($"Error: Wrote to log before initialized? '{Detail}'");
         }
 
-        public static async Task InitializeBackend()
+        public static void InitializeBackend()
         {
 
             try
@@ -94,7 +94,7 @@ namespace AITool
 
                 //initialize logging as early as we can...
                 int TempDefSize = ((1024 * 1024) * 20); //20mb
-                LogMan = new ClsLogManager(!Global.IsService, exe, LogLevel.Info, Path.Combine(AppDomain.CurrentDomain.BaseDirectory, Path.GetFileNameWithoutExtension(Assembly.GetEntryAssembly().Location) + $"{srv}LOG"),TempDefSize,120, AppSettings.Settings.MaxGUILogItems);
+                LogMan = new ClsLogManager(!Global.IsService, exe, LogLevel.Info, Path.Combine(AppDomain.CurrentDomain.BaseDirectory, Path.GetFileNameWithoutExtension(Assembly.GetEntryAssembly().Location) + $"{srv}LOG"), TempDefSize, 120, AppSettings.Settings.MaxGUILogItems);
 
                 //initialize the log and history file writers - log entries will be queued for fast file logging performance AND if the file
                 //is locked for any reason, it will wait in the queue until it can be written
@@ -443,7 +443,7 @@ namespace AITool
                                 //skip the image if its been in the queue too long
                                 if ((DateTime.Now - CurImg.TimeAdded).TotalMinutes >= AppSettings.Settings.MaxImageQueueTimeMinutes)
                                 {
-                                    Log($"...Taking image OUT OF QUEUE because it has been in there over 'MaxImageQueueTimeMinutes'. (QueueTime={(DateTime.Now - CurImg.TimeAdded).TotalMinutes.ToString("###0.0")}, Image ErrCount={CurImg.ErrCount}, Image RetryCount={CurImg.RetryCount}, ImageProcessQueue.Count={ImageProcessQueue.Count}: '{CurImg.image_path}'","None",cam.name, CurImg.image_path);
+                                    Log($"...Taking image OUT OF QUEUE because it has been in there over 'MaxImageQueueTimeMinutes'. (QueueTime={(DateTime.Now - CurImg.TimeAdded).TotalMinutes.ToString("###0.0")}, Image ErrCount={CurImg.ErrCount}, Image RetryCount={CurImg.RetryCount}, ImageProcessQueue.Count={ImageProcessQueue.Count}: '{CurImg.image_path}'", "None", cam.name, CurImg.image_path);
                                     continue;
                                 }
 
@@ -504,7 +504,7 @@ namespace AITool
                                             cam.stats_skipped_images_session++;
 
                                             Log($"...Error: Removing image from queue. Image RetryCount={CurImg.RetryCount}, URL ErrCount='{url.ErrCount}': {url}', Image: '{CurImg.image_path}', ImageProcessQueue.Count={ImageProcessQueue.Count}, Skipped this session={cam.stats_skipped_images_session }", url.CurSrv, cam.name, CurImg.image_path);
-                                            Global.CreateHistoryItem(new History().Create(CurImg.image_path, DateTime.Now, cam.name, $"Skipped image, {CurImg.RetryCount.ReadFullFence()} errors processing.", "", false,"",url.CurSrv));
+                                            Global.CreateHistoryItem(new History().Create(CurImg.image_path, DateTime.Now, cam.name, $"Skipped image, {CurImg.RetryCount.ReadFullFence()} errors processing.", "", false, "", url.CurSrv));
 
                                         }
                                     }
@@ -566,7 +566,7 @@ namespace AITool
         }
 
         //EVENT: new image added to input_path -> START AI DETECTION
-        private static async void OnCreatedAsync(object source, FileSystemEventArgs e)
+        private static void OnCreated(object source, FileSystemEventArgs e)
         {
             using var Trace = new Trace();  //This c# 8.0 using feature will auto dispose when the function is done.
 
@@ -869,7 +869,7 @@ namespace AITool
                     watcher.NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName;
 
                     //fswatcher events
-                    watcher.Created += new FileSystemEventHandler(OnCreatedAsync);
+                    watcher.Created += new FileSystemEventHandler(OnCreated);
                     watcher.Renamed += new RenamedEventHandler(OnRenamed);
                     watcher.Deleted += new FileSystemEventHandler(OnDeleted);
                     watcher.Error += new ErrorEventHandler(OnError);
@@ -1015,9 +1015,30 @@ namespace AITool
                                             {
                                                 jsonString = await output.Content.ReadAsStringAsync();
                                             }
+                                            else if (output.StatusCode == System.Net.HttpStatusCode.BadRequest)  //400
+                                            {
+                                                //TODO: Stop accepting 400 response when they give a better response.
+                                                Log($"Debug:{{purple}}      Deepstack returned HttpResponse 'BadRequest' (400).  For the new beta versions (10/21) this can mean 'no detections' OR it can mean the image is bad.  For now we will assume 'No detections'  TODO: Stop accepting 400 response when they give a better response.", CurSrv, cam.name, CurImg.image_path);
+
+                                                cam.IncrementFalseAlerts(); //stats update
+
+                                                Log($"Debug: (5/6) Performing CANCEL actions:", CurSrv, cam.name, CurImg.image_path);
+
+                                                hist = new History().Create(CurImg.image_path, DateTime.Now, cam.name, "false alert", "", false, "", DeepStackURL.CurSrv);
+
+                                                await TriggerActionQueue.AddTriggerActionAsync(TriggerType.All, cam, CurImg, hist, false, !cam.Action_queued, DeepStackURL, ""); //make TRIGGER
+
+                                                Log($"Debug: (6/6) Camera {cam.name} caused a false alert, nothing detected.", CurSrv, cam.name, CurImg.image_path);
+
+                                                //add to history list
+                                                Global.CreateHistoryItem(hist);
+
+                                                goto exitfunction;  //uggg, just a quick fix
+
+                                            }
                                             else
                                             {
-                                                error = $"ERROR: Got http status code '{Convert.ToInt32(output.StatusCode)}' in {swposttime.ElapsedMilliseconds}ms: {output.ReasonPhrase}";
+                                                error = $"ERROR: Got http status code '{output.StatusCode}' ({Convert.ToInt32(output.StatusCode)}) in {swposttime.ElapsedMilliseconds}ms: {output.ReasonPhrase}";
                                                 DeepStackURL.ErrCount.AtomicIncrementAndGet();
                                                 DeepStackURL.ResultMessage = error;
                                                 Log(error, CurSrv, cam.name, CurImg.image_path);
@@ -1113,12 +1134,12 @@ namespace AITool
                                                     irrelevant_objects_confidence.Add(pred.Confidence);
                                                     string position = $"{pred.XMin},{pred.YMin},{pred.XMax},{pred.YMax}";
                                                     irrelevant_objects_position.Add(position);
-                                                    
+
                                                     if (pred.Result == ResultType.NoConfidence)
                                                     {
                                                         threshold_counter++;
                                                     }
-                                                    else if (pred.Result == ResultType.ImageMasked || pred.Result == ResultType.DynamicMasked || pred.Result == ResultType.StaticMasked )
+                                                    else if (pred.Result == ResultType.ImageMasked || pred.Result == ResultType.DynamicMasked || pred.Result == ResultType.StaticMasked)
                                                     {
                                                         clr = "{" + AppSettings.Settings.RectMaskedColor.Name + "}";
                                                         masked_counter++;
@@ -1156,7 +1177,7 @@ namespace AITool
                                                 cam.last_image_file_with_detections = CurImg.image_path;
 
                                                 //the new way
-                                                
+
 
                                                 //create summary string for this detection
                                                 StringBuilder detectionsTextSb = new StringBuilder();
@@ -1183,7 +1204,7 @@ namespace AITool
                                                 Log($"Debug: (5/6) Performing alert actions:", CurSrv, cam.name, CurImg.image_path);
 
                                                 hist = new History().Create(CurImg.image_path, DateTime.Now, cam.name, objects_and_confidences, object_positions_as_string, true, PredictionsJSON, DeepStackURL.CurSrv);
-                                                
+
                                                 await TriggerActionQueue.AddTriggerActionAsync(TriggerType.All, cam, CurImg, hist, true, !cam.Action_queued, DeepStackURL, ""); //make TRIGGER
 
                                                 cam.IncrementAlerts(); //stats update
@@ -1328,7 +1349,7 @@ namespace AITool
                     DeepStackURL.ResultMessage = error;
                     Log(error, CurSrv, cam.name, CurImg.image_path);
                 }
-
+            exitfunction:
                 if (!string.IsNullOrEmpty(error) && AppSettings.Settings.send_errors == true)
                 {
                     //upload the alert image which could not be analyzed to Telegram
@@ -1368,7 +1389,7 @@ namespace AITool
                 cam.stats_skipped_images++;
                 cam.stats_skipped_images_session++;
                 Log($"Skipping detection for '{filename}' because cooldown has not been met for camera '{cam.name}':  '{mins.ToString("#######0.000")}' of '{halfcool.ToString("#######0.000")}' minutes (half of trigger cooldown time), Session Skip Count={cam.stats_skipped_images_session}", CurSrv, cam.name, CurImg.image_path);
-                Global.CreateHistoryItem(new History().Create(CurImg.image_path, DateTime.Now, cam.name, $"Skipped image, cooldown was '{mins.ToString("#######0.000")}' of '{halfcool.ToString("#######0.000")}' minutes.", "", false,"", DeepStackURL.CurSrv));
+                Global.CreateHistoryItem(new History().Create(CurImg.image_path, DateTime.Now, cam.name, $"Skipped image, cooldown was '{mins.ToString("#######0.000")}' of '{halfcool.ToString("#######0.000")}' minutes.", "", false, "", DeepStackURL.CurSrv));
             }
 
             return (error == "");
@@ -1574,7 +1595,7 @@ namespace AITool
                 {
                     imgpath = CurImg.image_path;
                 }
-                else if (hist !=null)
+                else if (hist != null)
                 {
                     imgpath = hist.Filename;
                 }
@@ -1616,13 +1637,14 @@ namespace AITool
                         ret = Global.ReplaceCaseInsensitive(ret, "[summarynonescaped]", hist.Detections); //summary text including all detections and confidences, p.e."person (91,53%)"
                         ret = Global.ReplaceCaseInsensitive(ret, "[summary]", Uri.EscapeUriString(hist.Detections)); //summary text including all detections and confidences, p.e."person (91,53%)"
                         ret = Global.ReplaceCaseInsensitive(ret, "[detection]", preds[0].ToString()); //only gives first detection (maybe not most relevant one)
-                        ret = Global.ReplaceCaseInsensitive(ret, "[position]", preds[0].PositionString()); 
+                        ret = Global.ReplaceCaseInsensitive(ret, "[position]", preds[0].PositionString());
                         ret = Global.ReplaceCaseInsensitive(ret, "[confidence]", preds[0].ConfidenceString());
                         ret = Global.ReplaceCaseInsensitive(ret, "[detections]", detections);
                         ret = Global.ReplaceCaseInsensitive(ret, "[confidences]", confidences);
                     }
                     else
                     {
+                        ret = Global.ReplaceCaseInsensitive(ret, "[summarynonescaped]", "No Summary Found");
                         ret = Global.ReplaceCaseInsensitive(ret, "[summary]", "No Summary Found"); //summary text including all detections and confidences, p.e."person (91,53%)"
                         ret = Global.ReplaceCaseInsensitive(ret, "[detection]", "No Detection Found"); //only gives first detection (maybe not most relevant one)
                         ret = Global.ReplaceCaseInsensitive(ret, "[position]", "No Position Found");
@@ -1641,10 +1663,11 @@ namespace AITool
                         ret = Global.ReplaceCaseInsensitive(ret, "[position]", cam.last_positions.ElementAt(0));
                         ret = Global.ReplaceCaseInsensitive(ret, "[confidence]", cam.last_confidences.ElementAt(0).ToString());
                         ret = Global.ReplaceCaseInsensitive(ret, "[detections]", string.Join(",", cam.last_detections));
-                        ret = Global.ReplaceCaseInsensitive(ret, "[confidences]", string.Join(",", cam.last_confidences.ToString()));
+                        ret = Global.ReplaceCaseInsensitive(ret, "[confidences]", string.Join(",", cam.last_confidences));
                     }
                     else
                     {
+                        ret = Global.ReplaceCaseInsensitive(ret, "[summarynonescaped]", "No Summary Found");
                         ret = Global.ReplaceCaseInsensitive(ret, "[summary]", "No Summary Found"); //summary text including all detections and confidences, p.e."person (91,53%)"
                         ret = Global.ReplaceCaseInsensitive(ret, "[detection]", "No Detection Found"); //only gives first detection (maybe not most relevant one)
                         ret = Global.ReplaceCaseInsensitive(ret, "[position]", "No Position Found");
@@ -1665,7 +1688,7 @@ namespace AITool
             return ret;
 
         }
-        
+
 
         public static Camera GetCamera(String ImageOrNameOrPrefix, bool ReturnDefault = true)
         {

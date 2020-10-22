@@ -29,7 +29,8 @@ namespace AITool
 
         private ThreadSafe.Boolean DatabaseInitialized = new ThreadSafe.Boolean(false);
 
-        private ThreadSafe.Boolean IsListUpdating = new ThreadSafe.Boolean(false);
+        private ThreadSafe.Boolean IsHistoryListUpdating = new ThreadSafe.Boolean(false);
+        private ThreadSafe.Boolean IsLogListUpdating = new ThreadSafe.Boolean(false);
 
         //Dictionary<string, History> HistoryDic = new Dictionary<string, History>();
         private ThreadSafe.Boolean FilterChanged = new ThreadSafe.Boolean(true);
@@ -69,9 +70,15 @@ namespace AITool
             //---------------------------------------------------------------------------
             //HISTORY TAB
 
-            Global_GUI.ConfigureFOLV(folv_history, typeof(History), new Font("Segoe UI", (float)9.75, FontStyle.Regular), HistoryImageList, "Date", SortOrder.Descending, GridLines: false);
-
+            Global_GUI.ConfigureFOLV(folv_history, typeof(History), new Font("Segoe UI", (float)9.75, FontStyle.Regular), HistoryImageList, GridLines: false);
             folv_history.EmptyListMsg = "Initializing database";
+
+
+            //---------------------------------------------------------------------------
+            //INITIALIZE HISTORY DB, ETC
+
+            AITOOL.InitializeBackend();
+
             cb_showMask.Checked = AppSettings.Settings.HistoryShowMask;
             cb_showObjects.Checked = AppSettings.Settings.HistoryShowObjects;
             cb_follow.Checked = AppSettings.Settings.HistoryFollow;
@@ -80,11 +87,6 @@ namespace AITool
             storeMaskedAlertsToolStripMenuItem.Checked = AppSettings.Settings.HistoryStoreMaskedAlerts;
             showOnlyRelevantObjectsToolStripMenuItem.Checked = AppSettings.Settings.HistoryOnlyDisplayRelevantObjects;
             HistoryUpdateListTimer.Interval = AppSettings.Settings.TimeBetweenListRefreshsMS;
-
-            //---------------------------------------------------------------------------
-            //INITIALIZE HISTORY DB, ETC
-
-            AITOOL.InitializeBackend();
 
             //---------------------------------------------------------------------------
             //CAMERAS TAB
@@ -158,11 +160,23 @@ namespace AITool
 
             this.UpdateLogAddedRemoved(true);
             LogUpdateListTimer.Interval = AppSettings.Settings.TimeBetweenListRefreshsMS;
-            LogUpdateListTimer.Enabled = true;
-            LogUpdateListTimer.Start();
+
+            if (toolStripButtonPauseLog.Checked)
+            {
+                LogUpdateListTimer.Enabled = false;
+                LogUpdateListTimer.Stop();
+            }
+            else
+            {
+                LogUpdateListTimer.Enabled = true;
+                LogUpdateListTimer.Start();
+            }
+
             tmr = new System.Timers.Timer();
             tmr.Interval = 300;
             tmr.Elapsed += new System.Timers.ElapsedEventHandler(tmr_Elapsed);
+            tmr.Stop();
+
             ToolStripComboBoxSearch.Text = Global.GetSetting("SearchText", "");
             mnu_Filter.Checked = AppSettings.Settings.log_mnu_Filter;
             mnu_Highlight.Checked = AppSettings.Settings.log_mnu_Highlight;
@@ -222,6 +236,7 @@ namespace AITool
                 Global_GUI.InvokeIFRequired(toolStripStatusLabelHistoryItems.GetCurrentParent(), () =>
                 {
                     tmr.Stop();
+                    tmr.Enabled = false;
                     if (Global.IsRegexPatternValid(this.ToolStripComboBoxSearch.Text) || this.ToolStripComboBoxSearch.Text.Length == 0)
                     {
                         this.ToolStripComboBoxSearch.ForeColor = Color.Blue;
@@ -238,51 +253,59 @@ namespace AITool
             }
         }
 
-        async Task UpdateLogAddedRemoved(bool Follow = false)
+        private void UpdateLogAddedRemoved(bool Follow = false)
         {
             using var Trace = new Trace();  //This c# 8.0 using feature will auto dispose when the function is done.
 
-            if ((tabControl1.SelectedTab == tabControl1.TabPages["tabLog"]) &&
+            if (IsLoading.ReadFullFence())
+                return;
+
+            if (!this.IsLogListUpdating.ReadFullFence() &&
+                (tabControl1.SelectedTab == tabControl1.TabPages["tabLog"]) &&
                 this.Visible &&
                 !(this.WindowState == FormWindowState.Minimized) &&
                 LogMan != null)
             {
                 //run in another thread so gui doesnt freeze
-                await Task.Run(async () =>
+                //await Task.Run(() =>
+                //{
+                Stopwatch sw = Stopwatch.StartNew();
+
+                this.IsLogListUpdating.WriteFullFence(true);
+
+                List<ClsLogItm> added = LogMan.GetRecentlyAdded();
+                List<ClsLogItm> removed = LogMan.GetRecentlyDeleted();
+
+                if (added.Count > 2000 || folv_log.Items.Count == 0)
                 {
-                    Stopwatch sw = Stopwatch.StartNew();
+                    //do it all in one update so it is faster:
+                    using var cw = new Global_GUI.CursorWait();
+                    Global_GUI.UpdateFOLV(folv_log, LogMan.Values, (Follow || AppSettings.Settings.Autoscroll_log), FullRefresh: true);
+                }
+                else
+                {
+                    if (removed.Count > 0)
+                        folv_log.RemoveObjects(removed);
 
-                    List<ClsLogItm> added = LogMan.GetRecentlyAdded();
-                    List<ClsLogItm> removed = LogMan.GetRecentlyDeleted();
-
-                    if (added.Count == 0 || added.Count > 2000)
-                    {
-                        //do it all in one update so it is faster:
-                        using var cw = new Global_GUI.CursorWait();
-                        Global_GUI.UpdateFOLV(folv_log, LogMan.Values.ToArray());
-                    }
-                    else
-                    {
-                        if (removed.Count > 0)
-                            Global_GUI.UpdateFOLV_DeleteObjects(folv_log, removed.ToArray(), false);
-
-                        if (added.Count > 0)
-                            Global_GUI.UpdateFOLV_AddObjects(folv_log, added.ToArray(), Follow || AppSettings.Settings.Autoscroll_log, null);
-                    }
+                    if (added.Count > 0)
+                        Global_GUI.UpdateFOLV(folv_log, added, (Follow || AppSettings.Settings.Autoscroll_log));
+                }
 
 
-                    if (sw.ElapsedMilliseconds > 5000 && sw.ElapsedMilliseconds < 10000)
-                    {
-                        Log($"Debug: ---- Log window update took {sw.ElapsedMilliseconds}ms to load. {added.Count} added, {removed.Count} removed, {folv_history.Items.Count} total. Consider lowering the '{nameof(AppSettings.Settings.MaxGUILogItems)}' setting in JSON file (Currently {AppSettings.Settings.MaxGUILogItems}) ");
-                    }
-                    else if (sw.ElapsedMilliseconds > 10000)
-                    {
-                        Log($"Warn: ---- Log window update took {sw.ElapsedMilliseconds}ms to load. {added.Count} added, {removed.Count} removed, {folv_history.Items.Count} total. Consider lowering the '{nameof(AppSettings.Settings.MaxGUILogItems)}' setting in JSON file (Currently {AppSettings.Settings.MaxGUILogItems}) ");
-                    }
+                if (sw.ElapsedMilliseconds > 5000 && sw.ElapsedMilliseconds < 10000)
+                {
+                    Log($"Debug: ---- Log window update took {sw.ElapsedMilliseconds}ms to load. {added.Count} added, {removed.Count} removed, {folv_history.Items.Count} total. Consider lowering the '{nameof(AppSettings.Settings.MaxGUILogItems)}' setting in JSON file (Currently {AppSettings.Settings.MaxGUILogItems}) ");
+                }
+                else if (sw.ElapsedMilliseconds > 10000)
+                {
+                    Log($"Warn: ---- Log window update took {sw.ElapsedMilliseconds}ms to load. {added.Count} added, {removed.Count} removed, {folv_history.Items.Count} total. Consider lowering the '{nameof(AppSettings.Settings.MaxGUILogItems)}' setting in JSON file (Currently {AppSettings.Settings.MaxGUILogItems}) ");
+                }
 
-                    UpdateStats();
+                UpdateStats();
 
-                });
+                //});
+
+                this.IsLogListUpdating.WriteFullFence(false);
 
             }
             else
@@ -292,10 +315,11 @@ namespace AITool
         }
         async Task UpdateHistoryAddedRemoved()
         {
+            using var Trace = new Trace();  //This c# 8.0 using feature will auto dispose when the function is done.
             //Log("===Enter");
             //this should be a quicker list update
             if (AppSettings.Settings.HistoryAutoRefresh &&
-                !this.IsListUpdating.ReadFullFence() &&
+                !this.IsHistoryListUpdating.ReadFullFence() &&
                 tabControl1.SelectedIndex == 2 &&
                 this.Visible &&
                 !(this.WindowState == FormWindowState.Minimized) &&
@@ -305,28 +329,27 @@ namespace AITool
                 await HistoryDB.HasUpdates())
             {
                 // run in another thread so gui doesnt freeze
-                await Task.Run(async () =>
+                await Task.Run(() =>
                 {
-                    this.IsListUpdating.WriteFullFence(true);
+                    this.IsHistoryListUpdating.WriteFullFence(true);
 
                     //Log($"Debug:  Updating list...({AddedHistoryItems.Count} added, {DeletedHistoryItems.Count} deleted)");
 
                     //UpdateToolstrip("Updating list...");
 
                     List<History> added = HistoryDB.GetRecentlyAdded();
-
-                    if (added.Count > 0)
-                        Global_GUI.UpdateFOLV_AddObjects(folv_history, added.ToArray(), AppSettings.Settings.HistoryFollow);
-
                     List<History> removed = HistoryDB.GetRecentlyDeleted();
 
                     if (removed.Count > 0)
-                        Global_GUI.UpdateFOLV_DeleteObjects(folv_history, removed.ToArray(), AppSettings.Settings.HistoryFollow);
+                        folv_history.RemoveObjects(removed);
+
+                    if (added.Count > 0)
+                        Global_GUI.UpdateFOLV(folv_history, added, AppSettings.Settings.HistoryFollow);
 
 
                     this.LastListUpdate.Write(DateTime.Now);
 
-                    this.IsListUpdating.WriteFullFence(false);
+                    this.IsHistoryListUpdating.WriteFullFence(false);
 
                     //UpdateToolstrip("");
 
@@ -345,6 +368,8 @@ namespace AITool
 
         async void EventMessage(ClsMessage msg)
         {
+            using var Trace = new Trace();  //This c# 8.0 using feature will auto dispose when the function is done.
+
             //output messages from the deepstack, blueiris, etc class to the text log window and log file
             if (msg.MessageType == MessageType.LogEntry)
             {
@@ -382,7 +407,7 @@ namespace AITool
                 if (!HistoryDB.ReadOnly)
                 {
                     bool StoreMasked = hist.Success || !hist.WasMasked || (hist.WasMasked && AppSettings.Settings.HistoryStoreMaskedAlerts);
-                    bool StoreFalse = hist.Success || !hist.Detections.ToLower().Contains("false alert") || (hist.Detections.ToLower().Contains("false alert") && AppSettings.Settings.HistoryStoreFalseAlerts);
+                    bool StoreFalse = hist.Success || !(hist.Detections.IndexOf("false alert", StringComparison.OrdinalIgnoreCase) >= 0) || (hist.Detections.IndexOf("false alert", StringComparison.OrdinalIgnoreCase) >= 0 && AppSettings.Settings.HistoryStoreFalseAlerts);
                     bool Save = true;
                     if (!StoreMasked || !StoreFalse)
                         Save = false;
@@ -427,7 +452,12 @@ namespace AITool
                 if (toolStripProgressBar1.Maximum != msg.MaxVal)
                     toolStripProgressBar1.Maximum = msg.MaxVal;
 
-                toolStripProgressBar1.Value = msg.CurVal;
+                if (msg.CurVal >= toolStripProgressBar1.Minimum && msg.CurVal <= toolStripProgressBar1.Maximum)
+                    toolStripProgressBar1.Value = msg.CurVal;
+                else if (msg.CurVal < toolStripProgressBar1.Minimum)
+                    toolStripProgressBar1.Value = toolStripProgressBar1.Minimum;
+                else if (msg.CurVal > toolStripProgressBar1.Maximum)
+                    toolStripProgressBar1.Value = toolStripProgressBar1.Maximum;
 
                 if (toolStripProgressBar1.Style != ProgressBarStyle.Continuous)
                     toolStripProgressBar1.Style = ProgressBarStyle.Continuous;
@@ -801,7 +831,7 @@ namespace AITool
         }
 
         //update timeline
-        public async void UpdateTimeline()
+        public void UpdateTimeline()
         {
 
             if (tabControl1.SelectedIndex != 1 || !this.Visible || this.WindowState == FormWindowState.Minimized || string.IsNullOrEmpty(comboBox1.Text))
@@ -820,9 +850,9 @@ namespace AITool
 
             try
             {
-                List<History> result = HistoryDB.HistoryDic.Values.ToList();
+                List<History> result = HistoryDB.GetAllValues();
 
-                if (comboBox1.Text.Trim().ToLower() != "All Cameras".ToLower()) //all cameras selected
+                if (!string.Equals(comboBox1.Text.Trim(), "All Cameras", StringComparison.OrdinalIgnoreCase)) //all cameras selected
                 {
                     result = result.Where(hist => hist.Camera.ToLower().StartsWith(comboBox1.Text.Trim().ToLower())).ToList();
                 }
@@ -960,7 +990,7 @@ namespace AITool
         }
 
         //update confidence_frequency chart
-        public async void UpdateConfidenceChart()
+        public void UpdateConfidenceChart()
         {
 
             if (tabControl1.SelectedIndex != 1 || !this.Visible || this.WindowState == FormWindowState.Minimized || string.IsNullOrEmpty(comboBox1.Text))
@@ -978,7 +1008,7 @@ namespace AITool
 
             try
             {
-                List<History> result = HistoryDB.HistoryDic.Values.ToList();
+                List<History> result = HistoryDB.GetAllValues();
 
                 if (!string.Equals(comboBox1.Text.Trim(), "All Cameras", StringComparison.OrdinalIgnoreCase)) //all cameras selected
                 {
@@ -1421,7 +1451,7 @@ namespace AITool
             //make sure only one thread updating at a time
             //await Semaphore_List_Updating.WaitAsync();
 
-            if (this.IsListUpdating.ReadFullFence())
+            if (this.IsHistoryListUpdating.ReadFullFence())
             {
                 Log("---Exit (already updating)");
                 return;
@@ -1429,7 +1459,7 @@ namespace AITool
 
             Stopwatch semsw = Stopwatch.StartNew();
 
-            this.IsListUpdating.WriteFullFence(true);
+            this.IsHistoryListUpdating.WriteFullFence(true);
             this.LastListUpdate.Write(DateTime.Now);
 
             Global_GUI.CursorWait cw = null;
@@ -1472,7 +1502,7 @@ namespace AITool
 
                     if (await HistoryDB.HasUpdates() || FilterChanged)
                     {
-                        Global_GUI.UpdateFOLV_add(folv_history, HistoryDB.HistoryDic.Values.ToArray(), FilterChanged, Follow);
+                        Global_GUI.UpdateFOLV(folv_history, HistoryDB.GetAllValues(), Follow || AppSettings.Settings.HistoryFollow);
 
                         //reset any that snuck in while waiting since we just did a full list update
                         HistoryDB.GetRecentlyAdded();
@@ -1527,7 +1557,7 @@ namespace AITool
                 if (cw != null)
                     cw.Dispose();
                 this.LastListUpdate.Write(DateTime.Now);
-                this.IsListUpdating.WriteFullFence(false);
+                this.IsHistoryListUpdating.WriteFullFence(false);
                 //Semaphore_List_Updating.Release();
                 //Log("---Exit");
 
@@ -2575,7 +2605,7 @@ namespace AITool
 
         }
 
-        private async void LoadDeepStackTab(bool StartIfNeeded)
+        private async Task LoadDeepStackTab(bool StartIfNeeded)
         {
 
             try
@@ -2594,11 +2624,11 @@ namespace AITool
                 //This will OVERRIDE the port if the deepstack processes found running already have a different port, mode, etc:
                 DeepStackServerControl.GetDeepStackRun();
 
-                if (DeepStackServerControl.Mode.ToLower() == "medium")
+                if (string.Equals(DeepStackServerControl.Mode, "medium", StringComparison.OrdinalIgnoreCase))
                     RB_Medium.Checked = true;
-                if (DeepStackServerControl.Mode.ToLower() == "low")
+                if (string.Equals(DeepStackServerControl.Mode, "low", StringComparison.OrdinalIgnoreCase))
                     RB_Low.Checked = true;
-                if (DeepStackServerControl.Mode.ToLower() == "high")
+                if (string.Equals(DeepStackServerControl.Mode, "high", StringComparison.OrdinalIgnoreCase))
                     RB_High.Checked = true;
 
                 Chk_DetectionAPI.Checked = DeepStackServerControl.DetectionAPIEnabled;
@@ -2947,8 +2977,8 @@ namespace AITool
                 //load telegram image sending on/off option
                 frm.cb_telegram.Checked = cam.telegram_enabled;
                 frm.tb_telegram_caption.Text = cam.telegram_caption;
+                frm.tb_telegram_triggering_objects.Text = cam.telegram_triggering_objects;
                 frm.cb_mask_telegram.Checked = cam.telegram_mask_enabled; // Mayo Added
-
 
                 frm.cb_copyAlertImages.Checked = cam.Action_image_copy_enabled;
                 frm.tb_network_folder_filename.Text = cam.Action_network_folder_filename;
@@ -2988,6 +3018,7 @@ namespace AITool
                     cam.cooldown_time = Convert.ToDouble(frm.tb_cooldown.Text.Trim());
                     cam.telegram_enabled = frm.cb_telegram.Checked;
                     cam.telegram_caption = frm.tb_telegram_caption.Text.Trim();
+                    cam.telegram_triggering_objects = frm.tb_telegram_triggering_objects.Text;
                     cam.telegram_mask_enabled = frm.cb_mask_telegram.Checked;  // Mayo Added
 
                     cam.Action_image_copy_enabled = frm.cb_copyAlertImages.Checked;
@@ -3031,9 +3062,13 @@ namespace AITool
 
         private void folv_history_SelectionChanged(object sender, EventArgs e)
         {
+
+            if (IsClosing.ReadFullFence())
+                return;
+
             try
             {
-                if (folv_history.SelectedObjects != null && folv_history.SelectedObjects.Count > 0)
+                if (folv_history.SelectedObjects != null && folv_history.SelectedObjects.Count > 0 && folv_history.SelectedObjects[0] != null)
                 {
                     History hist = (History)folv_history.SelectedObjects[0];
 
@@ -3092,7 +3127,7 @@ namespace AITool
             FormatHistoryRow(sender, e);
         }
 
-        private async void FormatHistoryRow(object Sender, BrightIdeasSoftware.FormatRowEventArgs e)
+        private void FormatHistoryRow(object Sender, BrightIdeasSoftware.FormatRowEventArgs e)
         {
             try
             {
@@ -3132,7 +3167,7 @@ namespace AITool
         private void btn_resetstats_Click(object sender, EventArgs e)
         {
 
-            if (comboBox1.Text == "All Cameras")
+            if (string.Equals(comboBox1.Text.Trim(), "All Cameras", StringComparison.OrdinalIgnoreCase))
             {
                 foreach (Camera cam in AppSettings.Settings.CameraList)
                 {
@@ -3159,12 +3194,11 @@ namespace AITool
 
             LogMan.ErrorCount.WriteFullFence(0);
 
+            AppSettings.Save();
+
             UpdatePieChart(); UpdateTimeline(); UpdateConfidenceChart();
 
             UpdateStats();
-
-            AppSettings.Save();
-
         }
 
         private async void cb_filter_skipped_CheckedChanged(object sender, EventArgs e)
@@ -3496,15 +3530,7 @@ namespace AITool
             AppSettings.Settings.Autoscroll_log = Chk_AutoScroll.Checked;
         }
 
-        private void toolStrip2_TextChanged(object sender, EventArgs e)
-        {
-            if (!tmr.Enabled)
-            {
-                tmr.Enabled = true;
-                tmr.Start();
-            }
-            this.TimeSinceType = DateTime.Now;
-        }
+
 
         private void Chk_AutoScroll_Click_1(object sender, EventArgs e)
         {
@@ -3518,6 +3544,9 @@ namespace AITool
 
         private void FilterLogErrors()
         {
+            if (IsLoading.ReadFullFence())
+                return;
+
             Global_GUI.InvokeIFRequired(folv_log, () =>
             {
 
@@ -3533,7 +3562,8 @@ namespace AITool
                 }
                 else
                 {
-                    Global_GUI.FilterFOLV(folv_log, this.ToolStripComboBoxSearch.Text, mnu_Filter.Checked);
+                    folv_log.ModelFilter = null;
+                    UpdateLogAddedRemoved(true);
                 }
 
             });
@@ -3541,6 +3571,9 @@ namespace AITool
 
         private async Task<bool> FilterHistItem(History hist)
         {
+            if (IsLoading.ReadFullFence())
+                return false;
+
             bool ret = false;
 
             try
@@ -3593,7 +3626,7 @@ namespace AITool
 
                             Global.UpdateProgressBar($"Searching {fi.Name}...", 1, 1);
 
-                            List<ClsLogItm> curlist = await LogMan.LoadLogFile(LogMan.GetCurrentLogFileName(), false, false);
+                            List<ClsLogItm> curlist = await LogMan.LoadLogFile(fi.Name, false, false);
 
                             Global.UpdateProgressBar($"Searching {fi.Name}...", 1, curlist.Count);
 
@@ -3630,25 +3663,39 @@ namespace AITool
                                 }
                                 else if (CLI.Detail.Contains(imagemaskkey) && ((CLI.Date - FirstSeen).TotalMinutes <= 20 || CLI.Func.StartsWith("CleanUpExpired")))
                                 {
-                                    fnd++;
                                     if (!found.Contains(CLI))
+                                    {
+                                        fnd++;
                                         found.Add(CLI);
+                                    }
                                 }
                                 else if (CLI.Detail.Contains(matchedmaskkey) && ((CLI.Date - FirstSeen).TotalMinutes <= 20 || CLI.Func.StartsWith("CleanUpExpired")))
                                 {
-                                    fnd++;
                                     if (!found.Contains(CLI))
+                                    {
+                                        fnd++;
                                         found.Add(CLI);
+                                    }
                                 }
                                 else if (string.Equals(CLI.Image, justfile, StringComparison.OrdinalIgnoreCase))
                                 {
-                                    fnd++;
                                     if (!found.Contains(CLI))
+                                    {
+                                        fnd++;
                                         found.Add(CLI);
+                                    }
                                 }
                             }
 
-                            Log($"Debug: ...Found {fnd} new matches for a total of {found.Count} in {fi.Name}...");
+                            if (curlist.Count > 0)
+                                Log($"Debug: ...Found {fnd} out of {curlist.Count} line matches for a total of {found.Count} in {fi.Name}...");
+                            else
+                                Log("Error: Log may be corrupt or an old format since no lines where returned: " + fi.Name);
+
+                        }
+                        else
+                        {
+                            Log($"Debug: Skipping file because Dates dont match: file ('{DATE.ToString("yyyy-MM-dd")}' != history '{hist.Date.ToString("yyyy-MM-dd")}') :{fi.Name}");
                         }
                     }
                     else
@@ -3770,6 +3817,9 @@ namespace AITool
         private void filter_CheckStateChanged(object sender, EventArgs e)
         {
 
+            if (IsLoading.ReadFullFence())
+                return;
+
             ToolStripMenuItem currentItem = (ToolStripMenuItem)sender;
             ToolStripDropDownButton parentItem = (ToolStripDropDownButton)currentItem.OwnerItem;
             if (currentItem.Checked)
@@ -3805,6 +3855,9 @@ namespace AITool
 
         private void Log_Filter_CheckStateChanged(object sender, EventArgs e)
         {
+
+            if (IsLoading.ReadFullFence())
+                return;
 
             ToolStripMenuItem currentItem = (ToolStripMenuItem)sender;
             ToolStripMenuItem parentItem = (ToolStripMenuItem)currentItem.OwnerItem;
@@ -3882,11 +3935,6 @@ namespace AITool
             this.Log_Filter_CheckStateChanged(sender, e);
         }
 
-        private void mnu_log_filter_fatal_Click(object sender, EventArgs e)
-        {
-
-        }
-
         private void mnu_log_filter_fatal_CheckStateChanged(object sender, EventArgs e)
         {
             this.Log_Filter_CheckStateChanged(sender, e);
@@ -3945,6 +3993,9 @@ namespace AITool
 
         private void StartPauseLog()
         {
+            if (IsLoading.ReadFullFence())
+                return;
+
             if (!toolStripButtonPauseLog.Checked)
             {
                 LogUpdateListTimer.Enabled = true;
@@ -3961,7 +4012,16 @@ namespace AITool
 
         private async void toolStripButtonReload_ClickAsync(object sender, EventArgs e)
         {
+            ReloadLog();
+        }
+
+        private async void ReloadLog()
+        {
+            if (IsLoading.ReadFullFence())
+                return;
+
             using var cw = new Global_GUI.CursorWait();
+            chk_filterErrors.Checked = false;
             LogMan.Clear();
             folv_log.ClearObjects();
             folv_log.ModelFilter = null;
@@ -3969,6 +4029,7 @@ namespace AITool
             Log($"Loaded {LogMan.Values.Count} lines in {LogMan.LastLoadTimeMS}ms from {LogMan.GetCurrentLogFileName()}.");
             this.UpdateLogAddedRemoved(true);
             toolStripButtonPauseLog.Checked = false;
+
         }
 
         private void toolStripComboBoxFiles_Click(object sender, EventArgs e)
@@ -3981,28 +4042,6 @@ namespace AITool
 
         }
 
-        private void LoadLogFilesCombo()
-        {
-
-            try
-            {
-
-                Global.GetFiles(Path.GetDirectoryName(AppSettings.Settings.LogFileName), "*.zip");
-
-            }
-            catch (Exception ex)
-            {
-
-                Log("Error: " + Global.ExMsg(ex));
-            }
-
-        }
-
-        private void ToolStripComboBoxSearch_Click(object sender, EventArgs e)
-        {
-
-        }
-
         private async void toolStripButtonLoad_Click(object sender, EventArgs e)
         {
             using (OpenFileDialog ofd = new OpenFileDialog())
@@ -4011,6 +4050,7 @@ namespace AITool
                 string LastFile = Global.GetSetting("LastLoadedLogFile", LogMan.GetCurrentLogFileName());
 
                 ofd.InitialDirectory = Path.GetDirectoryName(LastFile);
+                ofd.FileName = LastFile;
                 ofd.Title = "Browse for AITOOL Log Files";
                 ofd.CheckFileExists = true;
                 ofd.CheckPathExists = true;
@@ -4023,6 +4063,7 @@ namespace AITool
                 {
                     using var cw = new Global_GUI.CursorWait();
                     toolStripButtonPauseLog.Checked = true;
+                    chk_filterErrors.Checked = false;
                     Global.SaveSetting("LastLoadedLogFile", ofd.FileName);
                     LogMan.Clear();
                     folv_log.ClearObjects();
@@ -4036,6 +4077,108 @@ namespace AITool
             }
 
         }
+
+        private void chk_filterErrors_Click_1(object sender, EventArgs e)
+        {
+            FilterLogErrors();
+        }
+
+        private async void chk_filterErrorsAll_Click(object sender, EventArgs e)
+        {
+            if (IsLoading.ReadFullFence())
+                return;
+
+            if (!chk_filterErrorsAll.Checked)
+            {
+                ReloadLog();
+                return;
+            }
+
+            try
+            {
+
+                toolStripButtonPauseLog.Checked = true; //pause for a bit, and stay paused if results found
+
+                folv_log.ClearObjects();
+                folv_log.ModelFilter = null;
+                folv_log.EmptyListMsg = "Searching...";
+
+                StartPauseLog();
+
+                using var cw = new Global_GUI.CursorWait();
+
+                Stopwatch sw = new Stopwatch();
+
+                List<ClsLogItm> found = new List<ClsLogItm>();
+
+                //AITool.[2020-10-19].log
+                //AITool.[2020-10-19.1].log.zip
+                List<FileInfo> files = Global.GetFiles(Path.GetDirectoryName(AppSettings.Settings.LogFileName), "AITOOL.[*].LOG|AITOOL.[*].LOG.ZIP", SearchOption.TopDirectoryOnly);
+
+                //sort by date so newest files are searched first
+                files = files.OrderByDescending((d) => d.LastWriteTime).ToList();
+
+                foreach (var fi in files)
+                {
+                    //load into memory
+                    Log($"Debug: Searching {fi.Name}...");
+
+                    Global.UpdateProgressBar($"Searching {fi.Name}...", 1, 1);
+
+                    List<ClsLogItm> curlist = await LogMan.LoadLogFile(fi.Name, false, false);
+
+                    Global.UpdateProgressBar($"Searching {fi.Name}...", 1, curlist.Count);
+
+
+                    int fnd = 0;
+                    int cnt = 0;
+                    foreach (var CLI in curlist)
+                    {
+                        cnt++;
+                        Global.UpdateProgressBar($"Searching {fi.Name}...", cnt, curlist.Count);
+
+                        if (CLI.Level == LogLevel.Error || CLI.Level == LogLevel.Warn || CLI.Level == LogLevel.Fatal)
+                        {
+                            if (!found.Contains(CLI))
+                            {
+                                fnd++;
+                                found.Add(CLI);
+                            }
+                        }
+
+                    }
+
+                    Log($"Debug: ...Found {fnd} of {curlist.Count} lines that had an error for a total of {found.Count} lines in {fi.Name}...");
+
+                }
+
+                Log($"Found {found.Count} errors in {sw.ElapsedMilliseconds}ms");
+
+                if (found.Count > 0)
+                {
+                    LogMan.Clear();
+                    LogMan.AddRange(found);
+                    UpdateLogAddedRemoved(false);
+                }
+                else
+                {
+                    toolStripButtonPauseLog.Checked = false; //start
+                    StartPauseLog();
+                    MessageBox.Show($"Could not find any error log entries in {files.Count} files.");
+                }
+
+            }
+            catch (Exception ex)
+            {
+
+                Log("Error: " + Global.ExMsg(ex));
+            }
+            finally
+            {
+                Global.UpdateProgressBar($"", 0, 1);
+            }
+        }
+
     }
 
 
