@@ -35,6 +35,7 @@ namespace AITool
             string lasttext = "";
             string lastposition = "";
             string OutputImageFile = "";
+            string CurSrv = "";
             bool bSendTelegramMessage = false;
 
             try
@@ -203,14 +204,23 @@ namespace AITool
 
                                 GraphicsState gs = g.Save();
 
-                                ImageCodecInfo jpgEncoder = this.GetImageEncoder(ImageFormat.Jpeg);             
+                                ImageCodecInfo jpgEncoder = this.GetImageEncoder(ImageFormat.Jpeg);
+
+                                // Create an Encoder object based on the GUID  
+                                // for the Quality parameter category.  
                                 System.Drawing.Imaging.Encoder myEncoder = System.Drawing.Imaging.Encoder.Quality;
+
+                                // Create an EncoderParameters object.  
+                                // An EncoderParameters object has an array of EncoderParameter  
+                                // objects. In this case, there is only one  
+                                // EncoderParameter object in the array.  
                                 EncoderParameters myEncoderParameters = new EncoderParameters(1);
 
                                 EncoderParameter myEncoderParameter = new EncoderParameter(myEncoder, AQI.cam.Action_image_merge_jpegquality);  //100=least compression, largest file size, best quality
                                 myEncoderParameters.Param[0] = myEncoderParameter;
 
-                                bool Success = true;
+                                Global.WaitFileAccessResult result = new Global.WaitFileAccessResult();
+                                result.Success = true; //assume true
 
                                 if (AQI.cam.Action_image_merge_detections_makecopy)
                                     OutputImageFile = Path.Combine(Environment.GetEnvironmentVariable("TEMP"), Path.GetFileName(AQI.CurImg.image_path));
@@ -219,29 +229,23 @@ namespace AITool
 
                                 if (System.IO.File.Exists(OutputImageFile))
                                 {
-                                    Success = await Global.WaitForFileAccessAsync(OutputImageFile, FileSystemRights.FullControl, FileShare.ReadWrite);
+                                    result = await Global.WaitForFileAccessAsync(OutputImageFile, FileSystemRights.FullControl, FileShare.ReadWrite);
                                 }
 
-                                if (Success)
+                                if (result.Success)
                                 {
                                     img.Save(OutputImageFile, jpgEncoder, myEncoderParameters);
-                                    if (AQI.cam.telegram_mask_enabled && bSendTelegramMessage)
-                                    {
-                                        string telegram_file = "temp\\" + Path.GetFileName(OutputImageFile).Insert((Path.GetFileName(OutputImageFile).Length - 4), "_telegram");
-                                        img.Save(telegram_file, jpgEncoder, myEncoderParameters);
-                                    }
-                                    
-                                    Global.LogMessage($"Merged {countr} detections in {sw.ElapsedMilliseconds}ms into image {OutputImageFile}");
+                                    Log($"Debug: Merged {countr} detections in {sw.ElapsedMilliseconds}ms into image {OutputImageFile}");
                                 }
                                 else
                                 {
-                                    Global.LogMessage($"Error: Could not gain access to write merged file {OutputImageFile}");
+                                    Log($"Error: Could not gain access to write merged file {OutputImageFile}");
                                 }
 
                             }
                             else
                             {
-                                Global.LogMessage($"No detections to merge.  Time={sw.ElapsedMilliseconds}ms, {OutputImageFile}");
+                                Log($"Debug: No detections to merge.  Time={sw.ElapsedMilliseconds}ms, {OutputImageFile}");
 
                             }
                         }
