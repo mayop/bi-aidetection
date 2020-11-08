@@ -235,6 +235,11 @@ namespace AITool
                                 if (result.Success)
                                 {
                                     img.Save(OutputImageFile, jpgEncoder, myEncoderParameters);
+                                    if (AQI.cam.telegram_mask_enabled && bSendTelegramMessage)
+                                    {
+                                        string telegram_file = "temp\\" + Path.GetFileName(OutputImageFile).Insert((Path.GetFileName(OutputImageFile).Length - 4), "_telegram");
+                                        img.Save(telegram_file, jpgEncoder, myEncoderParameters);
+                                    }
                                     Log($"Debug: Merged {countr} detections in {sw.ElapsedMilliseconds}ms into image {OutputImageFile}");
                                 }
                                 else
