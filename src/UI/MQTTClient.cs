@@ -204,7 +204,8 @@ namespace AITool
                                         {
                                             Log($"Debug: MQTT: ### RECEIVED APPLICATION MESSAGE ###");
                                             Log($"Debug: MQTT: + Topic = {e.ApplicationMessage.Topic}");
-                                            Log($"Debug: MQTT: + Payload = {Encoding.UTF8.GetString(e.ApplicationMessage.Payload)}");
+                                            if (e.ApplicationMessage.Payload.Length < 64)
+                                                Log($"Debug: MQTT: + Payload = {Encoding.UTF8.GetString(e.ApplicationMessage.Payload)}");
                                             Log($"Debug: MQTT: + QoS = {e.ApplicationMessage.QualityOfServiceLevel}");
                                             Log($"Debug: MQTT: + Retain = {e.ApplicationMessage.Retain}");
                                             Log("");
@@ -240,12 +241,11 @@ namespace AITool
                                                 using FileStream image_data = System.IO.File.OpenRead(CurImg.image_path);
 
                                                 ma = new MqttApplicationMessageBuilder()
-                                                                        .WithTopic(topic)
-                                                                        .WithPayload(payload)
-                                                                        .WithPayload(image_data)
-                                                                        .WithAtLeastOnceQoS()
-                                                                        .WithRetainFlag(retain)
-                                                                        .Build();
+                                                         .WithTopic(topic)
+                                                         .WithPayload(image_data)
+                                                         .WithAtLeastOnceQoS()
+                                                         .WithRetainFlag(retain)
+                                                         .Build();
 
                                                 res = await mqttClient.PublishAsync(ma, CancellationToken.None);
 
@@ -263,11 +263,11 @@ namespace AITool
                                             else
                                             {
                                                 ma = new MqttApplicationMessageBuilder()
-                                                                        .WithTopic(topic)
-                                                                        .WithPayload(payload)
-                                                                        .WithAtLeastOnceQoS()
-                                                                        .WithRetainFlag(retain)
-                                                                        .Build();
+                                                        .WithTopic(topic)
+                                                        .WithPayload(payload)
+                                                        .WithAtLeastOnceQoS()
+                                                        .WithRetainFlag(retain)
+                                                        .Build();
 
                                                 res = await mqttClient.PublishAsync(ma, CancellationToken.None);
 
@@ -289,8 +289,6 @@ namespace AITool
                                                 {
                                                     Log($"Error: MQTT: sending: ({sw.ElapsedMilliseconds}ms) Reason: '{res.ReasonCode}' ({Convert.ToInt32(res.ReasonCode)} - '{res.ReasonString}')");
                                                 }
-
-
 
                                             }
 
