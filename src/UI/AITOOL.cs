@@ -225,6 +225,7 @@ namespace AITool
 
                 FileSystemErrorCheckTimer.Elapsed += new System.Timers.ElapsedEventHandler(TimerCheckFileSystemWatchers);
                 FileSystemErrorCheckTimer.Interval = AppSettings.Settings.FileSystemWatcherRetryOnErrorTimeMS;
+                FileSystemErrorCheckTimer.Enabled = true;
                 FileSystemErrorCheckTimer.Start();
 
                 //Start the thread that watches for the file queue
@@ -774,7 +775,7 @@ namespace AITool
                             if (!watchers.ContainsKey(name.ToLower()))
                             {
                                 //this will return null if the path is invalid...
-                                FileSystemWatcher curwatch = MyWatcherFatory(path, include);
+                                FileSystemWatcher curwatch = CreateFileWatcher(path, include);
                                 if (curwatch != null)
                                 {
                                     ClsFileSystemWatcher mywtc = new ClsFileSystemWatcher(name, path, curwatch, include);
@@ -789,7 +790,7 @@ namespace AITool
                                 if (watchers[name.ToLower()].watcher == null)
                                 {
                                     //could be null if path is bad
-                                    watchers[name.ToLower()].watcher = MyWatcherFatory(path, include);
+                                    watchers[name.ToLower()].watcher = CreateFileWatcher(path, include);
                                 }
                             }
                         }
@@ -908,7 +909,7 @@ namespace AITool
             }
             catch (Exception ex)
             {
-
+                FileWatcherHasError = true;
                 Log($"Error: {Global.ExMsg(ex)}");
             }
 
@@ -916,7 +917,7 @@ namespace AITool
 
         static bool FileWatcherHasError = false;
 
-        public static FileSystemWatcher MyWatcherFatory(string path, bool IncludeSubdirectories = false, string filter = "*.jpg")
+        public static FileSystemWatcher CreateFileWatcher(string path, bool IncludeSubdirectories = false, string filter = "*.jpg")
         {
             using var Trace = new Trace();  //This c# 8.0 using feature will auto dispose when the function is done.
 
@@ -948,6 +949,7 @@ namespace AITool
                     }
                     else
                     {
+                        FileWatcherHasError = true;
                         Log("Error: Path does not exist: " + path);
                     }
                 }
