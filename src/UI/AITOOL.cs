@@ -1072,8 +1072,50 @@ namespace AITool
             return watcher;
         }
 
+        public static ClsImageAdjust GetImageAdjustProfileByName(string name)
+        {
+            ClsImageAdjust ret = null;
+            ClsImageAdjust def = null;
 
-        static bool IsValidImage(ClsImageQueueItem CurImg)
+            foreach (ClsImageAdjust ia in AppSettings.Settings.ImageAdjustProfiles)
+            {
+                if (string.Equals(name.Trim(), ia.Name.Trim(), StringComparison.OrdinalIgnoreCase))
+                {
+                    ret = ia;
+                }
+                if (string.Equals("Default", ia.Name.Trim(), StringComparison.OrdinalIgnoreCase))
+                {
+                    def = ia;
+                }
+            }
+
+            if (ret == null)
+                ret = def;
+
+            if (ret == null)
+            {
+                ret = new ClsImageAdjust("Default");
+                Log($"Error: Could not find Image Adjust profile that matches '{name}'");
+            }
+
+            return ret;
+        }
+
+        public static bool HasImageAdjustProfile(string name)
+        {
+            bool ret = false;
+
+            foreach (ClsImageAdjust ia in AppSettings.Settings.ImageAdjustProfiles)
+            {
+                if (string.Equals(name.Trim(), ia.Name.Trim(), StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return ret;
+        }
+        public static bool IsValidImage(ClsImageQueueItem CurImg)
         {
             using var Trace = new Trace();  //This c# 8.0 using feature will auto dispose when the function is done.
 
@@ -2197,12 +2239,15 @@ namespace AITool
             {
                 ImageOrNameOrPrefix = ImageOrNameOrPrefix.Trim();
 
+                string pth = "";
+                string fname = "";
+                int index = -1;
                 //search by path or filename prefix if we are passed a full path to image file
                 if (ImageOrNameOrPrefix.Contains("\\"))
                 {
-                    string pth = Path.GetDirectoryName(ImageOrNameOrPrefix);
-                    string fname = Path.GetFileNameWithoutExtension(ImageOrNameOrPrefix);
-                    int index = -1;
+                    pth = Path.GetDirectoryName(ImageOrNameOrPrefix);
+                    fname = Path.GetFileNameWithoutExtension(ImageOrNameOrPrefix);
+                    
                     //&CAM.%Y%m%d_%H%M%S
                     //AIFOSCAMDRIVEWAY.20200827_131840312.jpg
                     //sgrtgrdg - Kopie (2).jpg
@@ -2229,36 +2274,38 @@ namespace AITool
                         }
                         else
                         {
-                            //fall back to camera name
-                            //TODO:  Is this right?   What problems will it cause?   This fixes an issue I had were I renamed a camera and it wasnt finding the images.
-                            index = AppSettings.Settings.CameraList.FindIndex(x => string.Equals(x.name.Trim(), fileprefix.Trim(), StringComparison.OrdinalIgnoreCase)); //get index of camera with same prefix, is =-1 if no camera has the same prefix 
-                            if (index > -1)
+                            //fall back to camera name, prefix and optional wildcard use
+                            //find by name or prefix
+                            //allow to use wildcards
+                            if (ImageOrNameOrPrefix.Contains("*") || ImageOrNameOrPrefix.Contains("?"))
                             {
-                                //found
-                                cam = AppSettings.Settings.CameraList[index];
+                                foreach (Camera ccam in AppSettings.Settings.CameraList)
+                                {
+                                    if (Regex.IsMatch(ccam.name, Global.WildCardToRegular(ImageOrNameOrPrefix), RegexOptions.IgnoreCase) || Regex.IsMatch(ccam.prefix, Global.WildCardToRegular(ImageOrNameOrPrefix), RegexOptions.IgnoreCase))
+                                    {
+                                        cam = ccam;
+                                        break;
+                                    }
+                                }
+
+                            }
+                            else  //find by exact name or prefix
+                            {
+                                foreach (Camera ccam in AppSettings.Settings.CameraList)
+                                {
+                                    if (string.Equals(ccam.name, ImageOrNameOrPrefix, StringComparison.OrdinalIgnoreCase) || string.Equals(ccam.prefix, ImageOrNameOrPrefix, StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        cam = ccam;
+                                        break;
+                                    }
+                                }
+
                             }
                         }
                     }
 
-                    //if it is not found, search by the input path
-                    if (index == -1)
-                    {
-                        foreach (Camera ccam in AppSettings.Settings.CameraList)
-                        {
-                            //If the watched path is c:\bi\cameraname but the full path of found file is 
-                            //                       c:\bi\cameraname\date\time\randomefilename.jpg 
-                            //we just check the beginning of the path
-                            if (!String.IsNullOrWhiteSpace(ccam.input_path) && ccam.input_path.Trim().StartsWith(pth, StringComparison.OrdinalIgnoreCase))
-                            {
-                                //found
-                                cam = ccam;
-                                break;
-
-                            }
-                        }
-
-                    }
-                    else
+                    
+                    if (index > -1 && cam == null)
                     {
                         //found
                         cam = AppSettings.Settings.CameraList[index];
@@ -2273,7 +2320,7 @@ namespace AITool
                     {
                         foreach (Camera ccam in AppSettings.Settings.CameraList)
                         {
-                            if (Regex.IsMatch(ccam.name, Global.WildCardToRegular(ImageOrNameOrPrefix)) || Regex.IsMatch(ccam.prefix, Global.WildCardToRegular(ImageOrNameOrPrefix)))
+                            if (Regex.IsMatch(ccam.name, Global.WildCardToRegular(ImageOrNameOrPrefix),RegexOptions.IgnoreCase) || Regex.IsMatch(ccam.prefix, Global.WildCardToRegular(ImageOrNameOrPrefix), RegexOptions.IgnoreCase))
                             {
                                 cam = ccam;
                                 break;
@@ -2292,6 +2339,25 @@ namespace AITool
                             }
                         }
 
+                    }
+
+                }
+
+                //if it is not found, search by the camera input path
+                if (cam == null && !string.IsNullOrEmpty(pth))
+                {
+                    foreach (Camera ccam in AppSettings.Settings.CameraList)
+                    {
+                        //If the watched path is c:\bi\cameraname but the full path of found file is 
+                        //                       c:\bi\cameraname\date\time\randomefilename.jpg 
+                        //we just check the beginning of the path
+                        if (!String.IsNullOrWhiteSpace(ccam.input_path) && ccam.input_path.Trim().StartsWith(pth, StringComparison.OrdinalIgnoreCase))
+                        {
+                            //found
+                            cam = ccam;
+                            break;
+
+                        }
                     }
 
                 }
