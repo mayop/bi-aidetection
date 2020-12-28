@@ -10,11 +10,18 @@ using static AITool.AITOOL;
 
 namespace AITool
 {
+    public enum DeepStackTypeEnum
+    {
+        CPU,
+        GPU,
+        Unknown
+    }
     public class DeepStack
     {
 
         public string DisplayName = "Unknown";
         public string DisplayVersion = "Unknown";
+        public DeepStackTypeEnum Type = DeepStackTypeEnum.Unknown;
         public bool IsNewVersion = false;
         public string AdminKey = "";
         public string APIKey = "";
@@ -42,6 +49,9 @@ namespace AITool
         public Global.ClsProcess RedisProc;
         public List<double> ResponseTimeList = new List<double>();  //From this you can get min/max/avg
 
+
+        private ThreadSafe.Boolean Starting = new ThreadSafe.Boolean(false);
+        private ThreadSafe.Boolean Stopping = new ThreadSafe.Boolean(false);
 
         public DeepStack(string AdminKey, string APIKey, string Mode, bool SceneAPIEnabled, bool FaceAPIEnabled, bool DetectionAPIEnabled, string Port, string CustomModelPath)
         {
@@ -73,6 +83,8 @@ namespace AITool
 
             if (this.IsNewVersion)
             {
+                
+
                 if (!Global.ProcessValid(this.ServerProc))
                     this.ServerProc = Global.GetaProcessByPath(this.ServerEXE);
                 if (!Global.ProcessValid(this.PythonProc))
@@ -80,18 +92,34 @@ namespace AITool
                 if (!Global.ProcessValid(this.RedisProc))
                     this.RedisProc = Global.GetaProcessByPath(this.RedisEXE);
 
-                if (Global.ProcessValid(this.ServerProc) && Global.ProcessValid(this.PythonProc) && Global.ProcessValid(this.RedisProc))
+                List<Global.ClsProcess> montys = Global.GetProcessesByPath(this.PythonEXE);
+
+                bool srvvalid = Global.ProcessValid(this.ServerProc);
+                bool redvalid = Global.ProcessValid(this.RedisProc);
+                bool pytvalid = montys.Count == 2;
+
+                bool allvalid = srvvalid && redvalid && pytvalid;
+
+                bool partvalid = (srvvalid || redvalid || pytvalid || Global.ProcessValid(this.PythonProc));
+
+                if (allvalid)
                 {
-                    this.IsInstalled = true;
                     this.HasError = false;
                     this.IsStarted = true;
                     Log("Debug: DeepStack Desktop IS running from " + this.ServerProc.FileName);
                 }
+                else if (partvalid)
+                {
+                    this.HasError = true;
+                    this.IsStarted = true;
+                    Log("Error: Deepstack partially running.  You many need to manually kill deepstack.exe, python.exe, redis-server.exe");
+
+                }
                 else
                 {
-                    Log("Debug: DeepStack Desktop NOT running.");
                     this.IsStarted = false;
                     this.HasError = false;
+                    Log("Debug: DeepStack Desktop NOT running.");
                 }
             }
             else
@@ -225,7 +253,9 @@ namespace AITool
             this.IsInstalled = false;
             RegistryKey key = null;
             List<string> reglocs = new List<string>();
+            //                                                                            {0E2C3125-3440-4622-A82A-3B1E07310EF2}_is1
             reglocs.Add(@"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\{0E2C3125-3440-4622-A82A-3B1E07310EF2}_is1");  //new 2020 beta 
+            reglocs.Add(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{0E2C3125-3440-4622-A82A-3B1E07310EF2}_is1");              //check for 64 bit install but I dont think it exists 
             reglocs.Add(@"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\{B976B0A1-C83C-4735-AC7F-196922A2748B}_is1");  //old 32 bit version
             reglocs.Add(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{B976B0A1-C83C-4735-AC7F-196922A2748B}_is1");              //check for 64 bit install but I dont think it exists 
 
@@ -294,11 +324,13 @@ namespace AITool
 
                 if (!this.IsInstalled)
                 {
-                    //Check default install path (cus deepstack.exe decompiled shows HARDCODED exe paths!!!!!!  WTF?)
+                    Log("Debug: DeepStack does not appear to be installed in add/remove programs.");
+
                     if (File.Exists(this.DeepStackEXE))
                     {
+                        this.DeepStackFolder = Path.GetDirectoryName(this.DeepStackEXE);
                         this.IsInstalled = true;
-                        Log("Debug: DeepStack is installed: " + this.DeepStackEXE);
+                        
                     }
                     else
                     {
@@ -306,16 +338,66 @@ namespace AITool
                         Log("Debug: DeepStack NOT installed");
                     }
                 }
-                else
+
+                if (this.IsInstalled)
                 {
-                    //LogProgress("DeepStack is installed: " + this.DeepStackEXE);
+                    //get type and version
+
+                    //this file exists with 2020 version:
+                    string servergo = Path.Combine(this.DeepStackFolder, "server", "server.go");
+                    //{
+                    //    "PROFILE":"windows_native",
+                    //    "GPU":false
+                    //}
+                    if (File.Exists(servergo))
+                    {
+                        this.IsNewVersion = true;
+                        this.IsActivated = true;
+                        string contents = File.ReadAllText(servergo);
+                        if (contents.IndexOf("\"CUDA_MODE\", \"True\"", StringComparison.OrdinalIgnoreCase) >= 0)
+                        {
+                            this.Type = DeepStackTypeEnum.GPU;
+                        }
+                        else if (contents.IndexOf("\"CUDA_MODE\", \"False\"", StringComparison.OrdinalIgnoreCase) >= 0 || contents.IndexOf("\"CUDA_MODE\"", StringComparison.OrdinalIgnoreCase) == -1)
+                        {
+                            this.Type = DeepStackTypeEnum.CPU;
+                        }
+                        else
+                        {
+                            this.Type = DeepStackTypeEnum.Unknown;
+                            Log($"Error: Could not determine CPU/GPU type in {servergo}?");
+                        }
+
+                        //get the version
+                        List<FileInfo> files = Global.GetFiles(this.DeepStackFolder, "*.iss", SearchOption.TopDirectoryOnly);
+                        if (files.Count > 0)
+                        {
+                            contents = File.ReadAllText(files[0].FullName);
+                            //#define MyAppVersion "2020.12.beta"
+                            this.DisplayVersion = Global.GetWordBetween(contents, "MyAppVersion \"", "\"");
+                        }
+                        else
+                        {
+                            Log($"Error: Could not find .ISS file in Deepstack folder?");
+                        }
+
+
+                    }
+                    else
+                    {
+                        this.IsNewVersion = false;
+                        this.Type = DeepStackTypeEnum.CPU;
+                        this.DisplayVersion = "3.4";
+
+                    }
+
+                    Log($"Debug: DeepStack v'{this.DisplayVersion}' ({this.Type}) is installed: " + this.DeepStackEXE);
+                    //Try to get running processes in any case
+                    bool success = this.GetDeepStackRun();
+
+                    Ret = true;
+
                 }
-
-
-                //Try to get running processes in any case
-                bool success = this.GetDeepStackRun();
-
-                Ret = true;
 
             }
             catch (Exception ex)
@@ -332,10 +414,17 @@ namespace AITool
         }
         public async Task<bool> StartAsync()
         {
-            return await Task.Run(() => this.Start());
+            using var Trace = new Trace();  //This c# 8.0 using feature will auto dispose when the function is done.
+            return await Task.Run(async () => this.Start());
         }
         private bool Start()
         {
+
+            if (this.Starting.ReadFullFence())
+                return false;
+
+            this.Starting.WriteFullFence(true);
+
             using var Trace = new Trace();  //This c# 8.0 using feature will auto dispose when the function is done.
 
             bool Ret = false;
@@ -351,6 +440,12 @@ namespace AITool
                 }
                 else
                 {
+                    if (this.IsStarted)
+                    {
+                        Log("Stopping already running DeepStack instance...");
+                        this.Stop();
+                    }
+
                     Log("Starting DeepStack...");
                 }
 
@@ -382,7 +477,7 @@ namespace AITool
                         if (!string.IsNullOrEmpty(this.AdminKey))
                             admin = $"--ADMIN-KEY {this.AdminKey} ";
                         if (!string.IsNullOrEmpty(this.APIKey))
-                            api = $"--API-KEY={this.APIKey} ";
+                            api = $"--API-KEY {this.APIKey} ";
 
                         this.ServerProc.process.StartInfo.Arguments = $"{face}{scene}{detect}{admin}{api}--PORT {this.Port}";
                     }
@@ -638,6 +733,10 @@ namespace AITool
                 this.HasError = true;
                 Log("Error: Cannot start: " + Global.ExMsg(ex));
             }
+            finally
+            {
+                this.Starting.WriteFullFence(false);
+            }
 
             return Ret;
 
@@ -861,6 +960,17 @@ namespace AITool
         public async Task<bool> StopAsync()
         {
             using var Trace = new Trace();  //This c# 8.0 using feature will auto dispose when the function is done.
+            return await Task.Run(() => this.Stop());
+        }
+        public bool Stop()
+        {
+
+            if (this.Stopping.ReadFullFence())
+                return false;
+
+            this.Stopping.WriteFullFence(true);
+
+            using var Trace = new Trace();  //This c# 8.0 using feature will auto dispose when the function is done.
 
             bool Ret = false;
             bool err = false;
@@ -876,8 +986,10 @@ namespace AITool
                 {
                     try
                     {
-                        await Task.Run(() => this.PythonProc.process.Kill());
-                        await Task.Delay(100);
+                        Log($"Debug: Stopping {this.PythonEXE}...");
+                        this.PythonProc.process.Kill();
+                        Log($"Debug: Stopped {this.PythonEXE}");
+                        Thread.Sleep(100);
                         this.PythonProc = Global.GetaProcessByPath(this.PythonEXE);
                     }
                     catch (Exception ex)
@@ -897,7 +1009,15 @@ namespace AITool
             try
             {
                 if (Global.ProcessValid(this.RedisProc))
-                    await Task.Run(() => this.RedisProc.process.Kill());
+                {
+                    Log($"Debug: Stopping {this.RedisEXE}...");
+                    this.RedisProc.process.Kill();
+                    Log($"Debug: Stopped {this.RedisEXE}");
+                }
+                else
+                {
+                    Log($"Debug: Not running? {this.RedisEXE}?");
+                }
             }
             catch (Exception ex)
             {
@@ -907,7 +1027,15 @@ namespace AITool
             try
             {
                 if (Global.ProcessValid(this.ServerProc))
-                    await Task.Run(() => this.ServerProc.process.Kill());
+                {
+                    Log($"Debug: Stopping {this.ServerEXE}...");
+                    this.ServerProc.process.Kill();
+                    Log($"Debug: Stopped {this.ServerEXE}");
+                }
+                else
+                {
+                    Log($"Debug: Not running? {this.ServerEXE}?");
+                }
             }
             catch (Exception ex)
             {
@@ -917,7 +1045,11 @@ namespace AITool
             try
             {
                 if (Global.ProcessValid(this.DeepStackProc))
-                    await Task.Run(() => this.DeepStackProc.process.Kill());
+                {
+                    Log($"Debug: Stopping {this.DeepStackEXE}...");
+                    this.DeepStackProc.process.Kill();
+                    Log($"Debug: Stopped {this.DeepStackEXE}");
+                }
             }
             catch (Exception ex)
             {
@@ -926,7 +1058,7 @@ namespace AITool
             }
 
             //takes a while for other python.exe processes to fully stop
-            await Task.Delay(250);
+            Thread.Sleep(250);
 
             if (!err)
             {
@@ -943,6 +1075,8 @@ namespace AITool
                 Log("Error: Could not stop - This can happen for a few reasons: 1) This tool did not originally START deepstack.  2) If this tool is 32 bit it cannot stop 64 bit Deepstack process.  Kill manually via task manager - Server.exe, python.exe, redis-server.exe.");
             }
 
+
+            this.Stopping.WriteFullFence(false);
 
             this.HasError = !Ret;
             return Ret;

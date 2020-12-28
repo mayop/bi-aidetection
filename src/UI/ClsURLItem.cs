@@ -40,6 +40,8 @@ namespace AITool
         public int CurOrder { get; set; } = 0;
         [JsonIgnore]
         public ThreadSafe.Integer CurErrCount { get; set; } = new ThreadSafe.Integer(0);
+        [JsonIgnore]
+        public ThreadSafe.Boolean ErrDisabled { get; set; } = new ThreadSafe.Boolean(false);
         public ThreadSafe.Integer ErrCount { get; set; } = new ThreadSafe.Integer(0);
         public string HelpURL { get; set; } = "";
         public DateTime LastUsedTime { get; set; } = DateTime.MinValue;
@@ -63,17 +65,7 @@ namespace AITool
             this.ErrCount.AtomicIncrementAndGet();
         }
 
-        public override bool Equals(object obj)
-        {
-            return Equals(obj as ClsURLItem);
-        }
-
-        public bool Equals(ClsURLItem other)
-        {
-            return other != null &&
-                   string.Equals(url, other.url, StringComparison.OrdinalIgnoreCase);
-        }
-
+       
         [JsonConstructor]
         public ClsURLItem() { }
 
@@ -281,6 +273,21 @@ namespace AITool
         public static bool operator !=(ClsURLItem left, ClsURLItem right)
         {
             return !(left == right);
+
+
         }
+
+        public override bool Equals(object obj)
+        {
+            return Equals(obj as ClsURLItem);
+        }
+
+        public bool Equals(ClsURLItem other)
+        {
+            return other != null &&
+                   string.Equals(this.url, other.url, StringComparison.OrdinalIgnoreCase) &&
+                   this.Type == other.Type;
+        }
+
     }
 }
