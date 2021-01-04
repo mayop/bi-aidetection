@@ -99,6 +99,11 @@ namespace AITool
             public string mqtt_password = "password";
             public string mqtt_clientid = "AITool";
 
+            public string pushover_APIKey = "";
+            public string pushover_UserKey = "";
+            public int pushover_cooldown_seconds = 5;
+            public int Pushover_RetryAfterFailSeconds = 300;  //default to 5 minutes if telegram exception
+
             public bool Autoscroll_log = true;
             public bool log_mnu_Filter = true;
             public bool log_mnu_Highlight = false;

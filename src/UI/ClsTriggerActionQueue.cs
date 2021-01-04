@@ -1,4 +1,5 @@
 ﻿using MQTTnet.Client.Publishing;
+using PushoverClient;
 using SixLabors.ImageSharp;
 using System;
 using System.Collections.Concurrent;
@@ -55,7 +56,9 @@ namespace AITool
         ConcurrentDictionary<string, ClsTriggerActionQueueItem> CancelActionDict = new ConcurrentDictionary<string, ClsTriggerActionQueueItem>();
 
         public ThreadSafe.Datetime last_telegram_trigger_time { get; set; } = new ThreadSafe.Datetime(DateTime.MinValue);
+        public ThreadSafe.Datetime last_Pushover_trigger_time { get; set; } = new ThreadSafe.Datetime(DateTime.MinValue);
         public ThreadSafe.Datetime TelegramRetryTime { get; set; } = new ThreadSafe.Datetime(DateTime.MinValue);
+        public ThreadSafe.Datetime PushoverRetryTime { get; set; } = new ThreadSafe.Datetime(DateTime.MinValue);
         public ClsURLItem _url { get; set; } = null;
         private String CurSrv = "";
         string ImgPath = "NoImage";
@@ -463,8 +466,6 @@ namespace AITool
                         string topic = "";
                         string payload = "";
 
-                        Log($"Debug: Before Topic='{AQI.cam.Action_mqtt_topic}', Payload='{AQI.cam.Action_mqtt_payload}'");
-
                         if (AQI.Trigger)
                         {
                             topic = AITOOL.ReplaceParams(AQI.cam, AQI.Hist, AQI.CurImg, AQI.cam.Action_mqtt_topic);
@@ -476,7 +477,7 @@ namespace AITool
                             payload = AITOOL.ReplaceParams(AQI.cam, AQI.Hist, AQI.CurImg, AQI.cam.Action_mqtt_payload_cancel);
                         }
 
-                        Log($"Debug: [SummaryNonEscaped]='{AQI.Hist.Detections}', After replacement Topic='{topic}', Payload='{payload}'");
+                        //Log($"Debug: [SummaryNonEscaped]='{AQI.Hist.Detections}', After replacement Topic='{topic}', Payload='{payload}'");
 
                         List<string> topics = Global.Split(topic, "|");
                         List<string> payloads = Global.Split(payload, "|");
@@ -489,7 +490,7 @@ namespace AITool
                                 ci = AQI.CurImg;
                             else
                                 ci = null;
-                            MqttClientPublishResult pr = await AITOOL.mq.PublishAsync(topics[i], payloads[i], AQI.cam.Action_mqtt_retain_message, ci);
+                            MqttClientPublishResult pr = await AITOOL.mqttClient.PublishAsync(topics[i], payloads[i], AQI.cam.Action_mqtt_retain_message, ci);
                             if (pr == null || pr.ReasonCode != MqttClientPublishReasonCode.Success)
                                 ret = false;
 
@@ -497,6 +498,24 @@ namespace AITool
 
 
                     }
+
+                    //upload to telegram
+                    if (AQI.cam.Action_pushover_enabled && AQI.Trigger)
+                    {
+
+                        if (!await this.PushoverUpload(AQI))
+                        {
+                            ret = false;
+                            Log($"Error:   -> ERROR sending image to Pushover", this.CurSrv, AQI.cam.Name, AQI.CurImg.image_path);
+                        }
+                        else
+                        {
+                            Log($"Debug:   -> Sent image to Pushover.", this.CurSrv, AQI.cam.Name, AQI.CurImg.image_path);
+                        }
+
+                    }
+
+                   
 
                     //upload to telegram
                     if (AQI.cam.telegram_enabled && AQI.Trigger)
@@ -898,8 +917,153 @@ namespace AITool
 
         }
 
-        //send image to Telegram
-        public async Task<bool> TelegramUpload(ClsTriggerActionQueueItem AQI)
+        public async Task<bool> PushoverUpload(ClsTriggerActionQueueItem AQI)
+        {
+            using var Trace = new Trace();  //This c# 8.0 using feature will auto dispose when the function is done.
+
+            bool ret = false;
+
+            if (!string.IsNullOrEmpty(AppSettings.Settings.pushover_APIKey) && !string.IsNullOrEmpty(AppSettings.Settings.pushover_UserKey))
+            {
+
+                //make sure it is a matching object
+                if (!string.IsNullOrEmpty(AQI.cam.Action_pushover_triggering_objects))
+                {
+                    
+                    List<ClsPrediction> preds = Global.SetJSONString<List<ClsPrediction>>(AQI.Hist.PredictionsJSON);
+                    if (preds != null && preds.Count > 0)
+                    {
+                        //find at least one thing in the triggered objects list in order to send
+                        string bad = "";
+                        bool fnd = false;
+                        foreach (ClsPrediction pred in preds)
+                        {
+                            if (Global.IsInList(pred.Label, AQI.cam.Action_pushover_triggering_objects))
+                                fnd = true;
+                            else
+                                bad += pred.Label + ",";
+                        }
+                        if (!fnd)
+                        {
+                            Log($"Debug: Skipping pushover because object(s) '{bad}' not in trigger objects list '{AQI.cam.Action_pushover_triggering_objects}'", this.CurSrv, AQI.cam.Name, AQI.CurImg.image_path);
+                            return false;
+                        }
+                    }
+                }
+
+                if (AppSettings.Settings.pushover_cooldown_seconds < 2)
+                {
+                    AppSettings.Settings.pushover_cooldown_seconds = 2;  //force to be at least 2 seconds
+                }
+
+                if (this.PushoverRetryTime.Read() == DateTime.MinValue || DateTime.Now >= this.PushoverRetryTime.Read())
+                {
+                    double cooltime = Math.Round((DateTime.Now - this.last_Pushover_trigger_time.Read()).TotalSeconds, 4);
+                    if (cooltime >= AppSettings.Settings.pushover_cooldown_seconds)
+                    {
+
+                        Stopwatch sw = Stopwatch.StartNew();
+
+                        string title = "";
+                        string message = "";
+                        string device = "";
+
+                        if (AQI.Trigger)
+                        {
+                            title = AITOOL.ReplaceParams(AQI.cam, AQI.Hist, AQI.CurImg, AQI.cam.Action_pushover_title);
+                            message = AITOOL.ReplaceParams(AQI.cam, AQI.Hist, AQI.CurImg, AQI.cam.Action_pushover_message);
+                            device = AITOOL.ReplaceParams(AQI.cam, AQI.Hist, AQI.CurImg, AQI.cam.Action_pushover_device);
+                        }
+                        else  //TODO: Add cancel if requested
+                        {
+                            title = AITOOL.ReplaceParams(AQI.cam, AQI.Hist, AQI.CurImg, AQI.cam.Action_pushover_title);
+                            message = AITOOL.ReplaceParams(AQI.cam, AQI.Hist, AQI.CurImg, AQI.cam.Action_pushover_message);
+                            device = AITOOL.ReplaceParams(AQI.cam, AQI.Hist, AQI.CurImg, AQI.cam.Action_pushover_device);
+                        }
+
+
+                        List<string> titles = Global.Split(title, "|");
+                        List<string> messages = Global.Split(message, "|");
+                        List<string> devices = Global.Split(device, "|");
+
+                        if (AITOOL.pushoverClient == null)
+                        {
+                            AITOOL.pushoverClient = new PushoverClient.Pushover(AppSettings.Settings.pushover_APIKey, AppSettings.Settings.pushover_UserKey);
+                        }
+
+                        for (int i = 0; i < titles.Count; i++)
+                        {
+                            PushResponse response = null;
+                            try
+                            {
+                                string pushtitle = titles[i];
+                                string pushmessage = messages[i];
+                                string pushdevice = "";
+                                if (i <= devices.Count - 1)
+                                    pushdevice = devices[i];
+                                
+                                //your app may send messages to the API with the timestamp parameter set to the Unix timestamp 
+                                //of the original message. For example, sending timestamp=1331249662 would deliver the message
+                                //with a time of March 8, 2011 17:34:22 CST (but shown relative to the local device's timezone). 
+
+                                response = await AITOOL.pushoverClient.PushAsync(pushtitle, pushmessage, device: pushdevice, timestamp: AQI.CurImg.TimeCreatedUTC);
+                            }
+                            catch (Exception ex)
+                            {
+
+                                ret = false;
+                                this.PushoverRetryTime.Write(DateTime.Now.AddSeconds(AppSettings.Settings.Pushover_RetryAfterFailSeconds));
+                                Log($"Error: Pushover: " + Global.ExMsg(ex), this.CurSrv, AQI.cam.Name, AQI.CurImg.image_path);
+                            }
+
+                            if (response != null)
+                            {
+
+                                if (response.Status == 1)
+                                {
+                                    ret = true;
+                                    Log($"Debug: Pushover success.");
+                                }
+                                else
+                                {
+                                    string errs = "";
+                                    if (response.Errors.Count() > 0)
+                                        errs = string.Join(";", response.Errors);
+                                    ret = false;
+                                    Log($"Error: Pushover response code={response.Status}, Errs='{errs}'");
+                                }
+                            }
+                            else
+                            {
+                                ret = false;
+                                Log($"Error: Pushover failed to return a response?", this.CurSrv, AQI.cam.Name, AQI.CurImg.image_path);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        //log that nothing was done
+                        Log($"Debug:   Still in PUSHOVER cooldown. No image will be uploaded to Telegram.  ({cooltime} of {AppSettings.Settings.pushover_cooldown_seconds} seconds - See 'pushover_cooldown_seconds' in settings file)", this.CurSrv, AQI.cam.Name, AQI.CurImg.image_path);
+
+                    }
+                }
+                else
+                {
+                    Log($"Debug:   Waiting {Math.Round((this.PushoverRetryTime.Read() - DateTime.Now).TotalSeconds, 1)} seconds ({this.PushoverRetryTime}) to retry PUSHOVER connection.  This is due to a previous pushover send error.", this.CurSrv, AQI.cam.Name, AQI.CurImg.image_path);
+                }
+
+            }
+            else
+            {
+                ret = false;
+                Log("Error: Pushover API key not set.");
+            }
+
+
+            return ret;
+        }
+            //send image to Telegram
+         public async Task<bool> TelegramUpload(ClsTriggerActionQueueItem AQI)
         {
             using var Trace = new Trace();  //This c# 8.0 using feature will auto dispose when the function is done.
 
