@@ -34,8 +34,7 @@ namespace AITool
             string detections = "";
             string lasttext = "";
             string lastposition = "";
-            string OutputImageFile = "";
-            string CurSrv = "";
+            string OutputImageFile = "";            
             bool bSendTelegramMessage = false;
 
             try
@@ -91,7 +90,7 @@ namespace AITool
 
                                         if (AQI.cam.telegram_mask_enabled && !bSendTelegramMessage)
                                         {
-                                            bSendTelegramMessage ^= this.TelegramOutsideMask(AQI.cam.name, xmin, xmax, ymin, ymax, img.Width, img.Height);
+                                            bSendTelegramMessage ^= this.TelegramOutsideMask(AQI.cam.Name, xmin, xmax, ymin, ymax, img.Width, img.Height);
                                         }
 
                                         int penSize = 2;
@@ -229,7 +228,7 @@ namespace AITool
 
                                 if (System.IO.File.Exists(OutputImageFile))
                                 {
-                                    result = await Global.WaitForFileAccessAsync(OutputImageFile, FileSystemRights.FullControl, FileShare.ReadWrite);
+                                    result = await Global.WaitForFileAccessAsync(OutputImageFile, FileAccess.ReadWrite, FileShare.ReadWrite);
                                 }
 
                                 if (result.Success)
@@ -269,10 +268,9 @@ namespace AITool
             return OutputImageFile;
         }
 
-
+        /*
         public async void MergeImageAnnotationsOld(Camera cam, ClsTriggerActionQueueItem AQI)
         {
-            int countr = 0;
             string detections = "";
             string lasttext = "";
             string lastposition = "";
@@ -288,7 +286,7 @@ namespace AITool
 
                     using (Bitmap img = new Bitmap(AQI.CurImg.image_path))
                     {
-                        /*
+                        
                         using (Graphics gfxImage = Graphics.FromImage(img))
                         {
                             System.Drawing.Rectangle rect;
@@ -392,7 +390,7 @@ namespace AITool
                                 Global.LogMessage($"No detections to merge.  Time={sw.ElapsedMilliseconds}ms, {OutputImageFile}");
                             }
                         }
-                        */
+                        
                     }
                 }
                 else
@@ -405,6 +403,7 @@ namespace AITool
                 Global.LogMessage($"Error: Detections='{detections}', LastText='{lasttext}', LastPostions='{lastposition}' - " + Global.ExMsg(ex));
             }
         }
+        */
 
         // ************************************************************************
         private ImageCodecInfo GetImageEncoder(ImageFormat format)
@@ -719,7 +718,7 @@ namespace AITool
             }
             catch (Exception ex)
             {
-
+                Log($"ERROR while saving detected image: {ex}.");
             }
         }
 
