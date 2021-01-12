@@ -135,5 +135,37 @@ namespace AITool
                 this.tb_jpeg_merge_quality.Enabled = false;
 
         }
+
+        private void cb_Pushover_Enabled_CheckedChanged(object sender, EventArgs e)
+        {
+            Global_GUI.GroupboxEnableDisable(groupBoxPushover, (CheckBox)sender);
+        }
+
+        private void cb_telegram_CheckedChanged(object sender, EventArgs e)
+        {
+            Global_GUI.GroupboxEnableDisable(groupBoxTelegram, (CheckBox)sender);
+        }
+
+        private void cb_MQTT_enabled_CheckedChanged(object sender, EventArgs e)
+        {
+            Global_GUI.GroupboxEnableDisable(groupBoxMQTT, (CheckBox)sender);
+        }
+
+        private void cb_PlaySound_CheckedChanged(object sender, EventArgs e)
+        {
+            tb_Sounds.Enabled = cb_PlaySound.Checked;
+        }
+
+        private void cb_RunProgram_CheckedChanged(object sender, EventArgs e)
+        {
+            tb_RunExternalProgram.Enabled = cb_RunProgram.Checked;
+            tb_RunExternalProgramArgs.Enabled = cb_RunProgram.Checked;
+        }
+
+        private void cb_copyAlertImages_CheckedChanged(object sender, EventArgs e)
+        {
+            tb_network_folder.Enabled = cb_copyAlertImages.Checked;
+            tb_network_folder_filename.Enabled = cb_copyAlertImages.Checked;
+        }
     }
 }

@@ -17,7 +17,8 @@ namespace AITool
         TelegramText,
         Sound,
         Run,
-        MQTT
+        MQTT,
+        Pushover
     }
     public class CameraTriggerAction
     {
@@ -44,6 +45,7 @@ namespace AITool
         public string telegram_caption = "[camera] - [SummaryNonEscaped]";  //cam.name + " - " + cam.last_detections_summary
         public string telegram_triggering_objects = "";
         public string telegram_chatid = "";
+        public string telegram_active_time_range = "00:00:00-23:59:59";
         public bool enabled = true;
         public double cooldown_time = 0;
         public int cooldown_time_seconds = 5;
@@ -84,7 +86,12 @@ namespace AITool
         public string Action_pushover_device = "";
         public string Action_pushover_triggering_objects = "";
         public string Action_pushover_Priority = "Normal";
-        public string Action_pushover_Sound = "";
+        public string Action_pushover_Sound = "pushover";
+        public int Action_pushover_retry_seconds = 60;
+        public int Action_pushover_expire_seconds = 10800;
+        public string Action_pushover_retrycallback_url = "";
+        public string Action_pushover_SupplementaryUrl = "";
+        public string Action_pushover_active_time_range = "00:00:00-23:59:59";
 
         [JsonIgnore]
         public bool Action_Cancel_Timer_Enabled = false;

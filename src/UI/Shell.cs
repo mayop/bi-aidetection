@@ -65,7 +65,11 @@ namespace AITool
             Global.progress = new Progress<ClsMessage>(this.EventMessage);
 
             this.SplashScreen = new FrmSplash();
-            this.SplashScreen.Show();
+
+            if (Debugger.IsAttached)
+                this.SplashScreen.Hide();
+            else
+                this.SplashScreen.Show();
 
             HideForm();
 
@@ -77,8 +81,8 @@ namespace AITool
 
         private async void Shell_Load(object sender, EventArgs e)
         {
-            //ClsImageQueueItem qi = new ClsImageQueueItem("C:\\Downloads\\TestVehicleImage.jpg",0);
-            //qi.CopyFileTo("C:\\TEST\\blah.jpg");
+
+           
 
             //ClsDoodsRequest cdr = new ClsDoodsRequest();
 
@@ -108,7 +112,18 @@ namespace AITool
 
             await AITOOL.InitializeBackend();
 
+
+            //ClsImageQueueItem cli = new ClsImageQueueItem("C:\\Downloads\\TestImage.jpg", 0);
+            //NPushover.RequestObjects.Message msg = new NPushover.RequestObjects.Message();
+            //msg.Timestamp = DateTime.Now;
+            //msg.Title = "Test title";
+            //msg.Body = "Some message";
+
+            //AITOOL.pushoverClient = new NPushover.Pushover(AppSettings.Settings.pushover_APIKey);
+            //NPushover.ResponseObjects.PushoverUserResponse usr = await AITOOL.pushoverClient.SendPushoverMessageAsync(msg, "", cli);
+
             Log($"Debug: Back end initialization completed in {sw.ElapsedMilliseconds}ms.");
+
 
             //since async stuff continues on another thread, we have to do this:
 
@@ -174,7 +189,8 @@ namespace AITool
                 this.tb_telegram_token.Text = AppSettings.Settings.telegram_token;
                 this.tb_telegram_cooldown.Text = AppSettings.Settings.telegram_cooldown_seconds.ToString();
 
-                this.cb_send_errors.Checked = AppSettings.Settings.send_errors;
+                this.cb_send_telegram_errors.Checked = AppSettings.Settings.send_telegram_errors;
+                this.cb_send_pushover_errors.Checked = AppSettings.Settings.send_pushover_errors;
                 this.cbStartWithWindows.Checked = AppSettings.Settings.startwithwindows;
 
                 this.tb_username.Text = AppSettings.Settings.DefaultUserName;
@@ -911,6 +927,9 @@ namespace AITool
                 this.ResizeListViews();
                 //Log($"Debug: Form_Resize. Visible={this.Visible}, state={this.WindowState}, tbicon={this.ShowInTaskbar}, tryicon={this.notifyIcon.Visible}");
             }
+
+            UpdateErrorIcon();
+
         }
 
         //open from tray
@@ -1636,13 +1655,40 @@ namespace AITool
         }
 
         // add new entry in left list
+        private bool showingtrayerr = false;
+        private bool showingtrayok = false;
 
+        private void UpdateErrorIcon()
+        {
+            try
+            {
+                //make tray icon red if there are errors
+                if (LogMan.ErrorCount.ReadFullFence() == 0 && !showingtrayok)
+                {
+                    this.notifyIcon.Icon = AITool.Properties.Resources.Logo1;
+                    this.Icon = AITool.Properties.Resources.Logo1;
+                    this.Refresh();
+                    showingtrayok = true;
+                    showingtrayerr = false;
+                }
+                else if (LogMan.ErrorCount.ReadFullFence() > 0 && !showingtrayerr)
+                {
+                    this.notifyIcon.Icon = AITool.Properties.Resources.Logo_Error;
+                    this.Icon = AITool.Properties.Resources.Logo_Error;
+                    this.Refresh();
+                    showingtrayok = false;
+                    showingtrayerr = true;
+                }
+
+            }
+            catch { }
+        }
 
         private void UpdateStats(string Message = "")
         {
             try
             {
-
+                UpdateErrorIcon();
 
                 if (!this.Visible || (this.WindowState == FormWindowState.Minimized) || this.IsStatsUpdating.ReadFullFence() || IsClosing.ReadFullFence())
                     return;  //save a tree
@@ -2647,6 +2693,7 @@ namespace AITool
                                             icam.telegram_enabled = cam.telegram_enabled;
                                             icam.telegram_caption = cam.telegram_caption;
                                             icam.telegram_chatid = cam.telegram_chatid;
+                                            icam.telegram_active_time_range = cam.telegram_active_time_range;
 
                                             icam.Action_image_copy_enabled = cam.Action_image_copy_enabled;
                                             icam.Action_network_folder = cam.Action_network_folder;
@@ -2656,17 +2703,29 @@ namespace AITool
                                             icam.Action_RunProgramArgsString = cam.Action_RunProgramArgsString;
                                             icam.Action_PlaySounds = cam.Action_PlaySounds;
                                             icam.Action_Sounds = cam.Action_Sounds;
+                                            
                                             icam.Action_mqtt_enabled = cam.Action_mqtt_enabled;
                                             icam.Action_mqtt_payload = cam.Action_mqtt_payload;
                                             icam.Action_mqtt_topic = cam.Action_mqtt_topic;
                                             icam.Action_mqtt_payload_cancel = cam.Action_mqtt_payload_cancel;
                                             icam.Action_mqtt_topic_cancel = cam.Action_mqtt_topic_cancel;
+                                            
                                             icam.Action_image_merge_detections = cam.Action_image_merge_detections;
                                             icam.Action_image_merge_jpegquality = cam.Action_image_merge_jpegquality;
+                                            
                                             icam.Action_pushover_enabled = cam.Action_pushover_enabled;
                                             icam.Action_pushover_title = cam.Action_pushover_title;
                                             icam.Action_pushover_message = cam.Action_pushover_message;
                                             icam.Action_pushover_device = cam.Action_pushover_device;
+                                            icam.Action_pushover_Sound = cam.Action_pushover_Sound;
+                                            icam.Action_pushover_Priority = cam.Action_pushover_Priority;
+                                            icam.Action_pushover_retrycallback_url = cam.Action_pushover_retrycallback_url;
+                                            icam.Action_pushover_SupplementaryUrl = cam.Action_pushover_SupplementaryUrl;
+                                            icam.Action_pushover_expire_seconds = cam.Action_pushover_expire_seconds;
+                                            icam.Action_pushover_retry_seconds = cam.Action_pushover_retry_seconds;
+                                            icam.Action_pushover_triggering_objects = cam.Action_pushover_triggering_objects;
+                                            icam.Action_pushover_active_time_range = cam.Action_pushover_active_time_range;
+
                                             icam.Action_queued = cam.Action_queued;
                                         }
                                         if (frm.cb_apply_mask_settings.Checked)
@@ -2811,7 +2870,8 @@ namespace AITool
             AppSettings.Settings.telegram_chatids = Global.Split(this.tb_telegram_chatid.Text, "|;,", true, true);
             AppSettings.Settings.telegram_token = this.tb_telegram_token.Text.Trim();
             AppSettings.Settings.telegram_cooldown_seconds = Convert.ToInt32(this.tb_telegram_cooldown.Text.Trim());
-            AppSettings.Settings.send_errors = this.cb_send_errors.Checked;
+            AppSettings.Settings.send_telegram_errors = this.cb_send_telegram_errors.Checked;
+            AppSettings.Settings.send_pushover_errors = this.cb_send_pushover_errors.Checked;
             AppSettings.Settings.startwithwindows = this.cbStartWithWindows.Checked;
 
             AppSettings.Settings.DefaultUserName = this.tb_username.Text.Trim();
@@ -3500,6 +3560,7 @@ namespace AITool
                 frm.cb_telegram.Checked = cam.telegram_enabled;
                 frm.tb_telegram_caption.Text = cam.telegram_caption;
                 frm.tb_telegram_triggering_objects.Text = cam.telegram_triggering_objects;
+                frm.cb_telegram_active_time.Text = cam.telegram_active_time_range;
                 frm.cb_mask_telegram.Checked = cam.telegram_mask_enabled; // Mayo Added
 
                 frm.cb_copyAlertImages.Checked = cam.Action_image_copy_enabled;
@@ -3525,12 +3586,26 @@ namespace AITool
                 frm.tb_Pushover_Message.Text = cam.Action_pushover_message;
                 frm.tb_Pushover_Device.Text = cam.Action_pushover_device;
                 frm.tb_pushover_triggering_objects.Text = cam.Action_pushover_triggering_objects;
+                frm.tb_Pushover_Priority.Text = cam.Action_pushover_Priority;
+                frm.tb_Pushover_sound.Text = cam.Action_pushover_Sound;
+                frm.cb_pushover_active_time.Text = cam.Action_pushover_active_time_range;
 
                 frm.cb_queue_actions.Checked = cam.Action_queued;
 
                 frm.cb_mergeannotations.Checked = cam.Action_image_merge_detections;
 
                 frm.tb_jpeg_merge_quality.Text = cam.Action_image_merge_jpegquality.ToString();
+
+                Global_GUI.GroupboxEnableDisable(frm.groupBoxPushover, frm.cb_Pushover_Enabled);
+                Global_GUI.GroupboxEnableDisable(frm.groupBoxTelegram, frm.cb_telegram);
+                Global_GUI.GroupboxEnableDisable(frm.groupBoxMQTT, frm.cb_MQTT_enabled);
+
+                frm.tb_Sounds.Enabled = frm.cb_PlaySound.Checked;
+                frm.tb_RunExternalProgram.Enabled = frm.cb_RunProgram.Checked;
+                frm.tb_RunExternalProgramArgs.Enabled = frm.cb_RunProgram.Checked;
+                frm.tb_network_folder.Enabled = frm.cb_copyAlertImages.Checked;
+                frm.tb_network_folder_filename.Enabled = frm.cb_copyAlertImages.Checked;
+
 
                 if (frm.cb_mergeannotations.Checked)
                     frm.tb_jpeg_merge_quality.Enabled = true;
@@ -3547,8 +3622,9 @@ namespace AITool
                     cam.cooldown_time_seconds = Convert.ToInt32(frm.tb_cooldown.Text.Trim());
                     cam.telegram_enabled = frm.cb_telegram.Checked;
                     cam.telegram_caption = frm.tb_telegram_caption.Text.Trim();
-                    cam.telegram_triggering_objects = frm.tb_telegram_triggering_objects.Text;
                     cam.telegram_mask_enabled = frm.cb_mask_telegram.Checked;  // Mayo Added
+                    cam.telegram_triggering_objects = frm.tb_telegram_triggering_objects.Text.Trim();
+                    cam.telegram_active_time_range = frm.cb_telegram_active_time.Text.Trim();
 
                     cam.Action_image_copy_enabled = frm.cb_copyAlertImages.Checked;
                     cam.Action_network_folder = frm.tb_network_folder.Text.Trim();
@@ -3573,6 +3649,9 @@ namespace AITool
                     cam.Action_pushover_message = frm.tb_Pushover_Message.Text.Trim();
                     cam.Action_pushover_device = frm.tb_Pushover_Device.Text.Trim();
                     cam.Action_pushover_triggering_objects = frm.tb_pushover_triggering_objects.Text.Trim();
+                    cam.Action_pushover_Sound = frm.tb_Pushover_sound.Text.Trim();
+                    cam.Action_pushover_Priority = frm.tb_Pushover_Priority.Text.Trim();
+                    cam.Action_pushover_active_time_range = frm.cb_pushover_active_time.Text.Trim();
 
                     cam.Action_image_merge_detections = frm.cb_mergeannotations.Checked;
 
@@ -4022,12 +4101,20 @@ namespace AITool
 
         private void btn_enabletelegram_Click(object sender, EventArgs e)
         {
+            AppSettings.Settings.send_telegram_errors = cb_send_telegram_errors.Checked;
+            AppSettings.Settings.send_pushover_errors = cb_send_pushover_errors.Checked;
+
             foreach (Camera cam in AppSettings.Settings.CameraList)
             {
-                if (!cam.telegram_enabled)
+                if (AppSettings.Settings.send_telegram_errors && !cam.telegram_enabled)
                 {
                     cam.telegram_enabled = true;
                     Log($"Enabled Telegram on camera '{cam.Name}'.");
+                }
+                if (AppSettings.Settings.send_pushover_errors && !cam.Action_pushover_enabled)
+                {
+                    cam.Action_pushover_enabled = true;
+                    Log($"Enabled Pushover on camera '{cam.Name}'.");
                 }
             }
             AppSettings.SaveAsync();
@@ -4035,12 +4122,20 @@ namespace AITool
 
         private void btn_disabletelegram_Click(object sender, EventArgs e)
         {
+            AppSettings.Settings.send_telegram_errors = cb_send_telegram_errors.Checked;
+            AppSettings.Settings.send_pushover_errors = cb_send_pushover_errors.Checked;
+
             foreach (Camera cam in AppSettings.Settings.CameraList)
             {
-                if (cam.telegram_enabled)
+                if (AppSettings.Settings.send_telegram_errors && cam.telegram_enabled)
                 {
                     cam.telegram_enabled = false;
                     Log($"Disabled Telegram on camera '{cam.Name}'.");
+                }
+                if (AppSettings.Settings.send_pushover_errors && cam.Action_pushover_enabled)
+                {
+                    cam.Action_pushover_enabled = false;
+                    Log($"Disabled Pushover on camera '{cam.Name}'.");
                 }
             }
             AppSettings.SaveAsync();
