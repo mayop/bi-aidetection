@@ -35,7 +35,10 @@ namespace AITool
             {
                 if (!cont.Equals(MasterCheckBox))
                 {
-                    if (cont.Enabled && (cont.Tag == null || !(cont.Tag is Color)))
+                    if (cont.Enabled )
+                        cont.Tag = cont.ForeColor;
+                    
+                    if (cont.Tag == null || !(cont.Tag is Color))
                         cont.Tag = cont.ForeColor;
 
                     cont.Enabled = MasterCheckBox.Checked;
@@ -894,7 +897,7 @@ namespace AITool
                 string png = ".png";  //make empty string to avoid using the png version of the images
 
                 ClsURLItem url = (ClsURLItem)row;
-                if (url.Type == URLTypeEnum.AWSRekognition)
+                if (url.Type == URLTypeEnum.AWSRekognition_Objects)
                 {
                     RetKey = "AWSRekognition" + png;
                 }
