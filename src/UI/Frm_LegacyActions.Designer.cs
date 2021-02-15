@@ -108,6 +108,17 @@
             this.groupBoxPushover.SuspendLayout();
             this.SuspendLayout();
             // 
+            // cb_mask_telegram
+            // 
+            this.cb_mask_telegram.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.cb_mask_telegram.AutoSize = true;
+            this.cb_mask_telegram.Location = new System.Drawing.Point(740, 79);
+            this.cb_mask_telegram.Name = "cb_mask_telegram";
+            this.cb_mask_telegram.Size = new System.Drawing.Size(105, 19);
+            this.cb_mask_telegram.TabIndex = 3;
+            this.cb_mask_telegram.Text = "Telegram Mask";
+            this.cb_mask_telegram.UseVisualStyleBackColor = true;
+            // 
             // btnCancel
             // 
             this.btnCancel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
@@ -173,6 +184,7 @@
             this.groupBox1.Controls.Add(this.tb_DetectionFormat);
             this.groupBox1.Controls.Add(this.tb_sound_cooldown);
             this.groupBox1.Controls.Add(this.tb_cooldown);
+            this.groupBox1.Controls.Add(this.cb_mask_telegram);
             this.groupBox1.Location = new System.Drawing.Point(8, 13);
             this.groupBox1.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
             this.groupBox1.Name = "groupBox1";
@@ -180,17 +192,6 @@
             this.groupBox1.Size = new System.Drawing.Size(864, 632);
             this.groupBox1.TabIndex = 4;
             this.groupBox1.TabStop = false;
-            // cb_mask_telegram
-            // 
-            this.cb_mask_telegram.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.cb_mask_telegram.AutoSize = true;
-            this.cb_mask_telegram.Location = new System.Drawing.Point(790, 24);
-            this.cb_mask_telegram.Name = "cb_mask_telegram";
-            this.cb_mask_telegram.Size = new System.Drawing.Size(54, 19);
-            this.cb_mask_telegram.TabIndex = 47;
-            this.cb_mask_telegram.Text = "Mask";
-            this.cb_mask_telegram.UseVisualStyleBackColor = true;
-            // 
             // 
             // groupBoxMQTT
             // 
@@ -964,7 +965,7 @@
             this.AutoScroll = true;
             this.BackColor = System.Drawing.Color.WhiteSmoke;
             this.CancelButton = this.btnCancel;
-            this.ClientSize = new System.Drawing.Size(880, 692);
+            this.ClientSize = new System.Drawing.Size(888, 700);
             this.Controls.Add(this.bt_variables);
             this.Controls.Add(this.groupBox1);
             this.Controls.Add(this.btnCancel);
