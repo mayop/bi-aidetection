@@ -48,8 +48,6 @@ namespace AITool
         public static BlueIris BlueIrisInfo = null;
         //public static List<ClsURLItem> DeepStackURLList = new List<ClsURLItem>();
 
-        public static MayoFunctions MayoFunc = new MayoFunctions(); // Mayo Add
-
         //keep track of timing
         //moving average will be faster for long running process with 1000's of samples
         public static MovingCalcs tcalc = new MovingCalcs(250, "Images", true);
@@ -214,24 +212,6 @@ namespace AITool
                 {
                     Log($"Debug: BlueIris not detected.");
                 }
-
-                //if camera settings folder does not exist, create it
-                if (!Directory.Exists("./cameras/"))
-                {
-                    //create folder
-                    DirectoryInfo di = Directory.CreateDirectory("./cameras");
-                    Log("./cameras/" + " dir created.");
-                }
-                
-                // Mayo Add 
-                MayoFunc.DrectoryCheck();
-                MayoFunc.PurgeFiles("./detections/", ".jpg", 14);
-
-                if (AppSettings.Settings.telegram_token != "")
-                {
-                   // MayoFunc.StartTelegramListener(AppSettings.Settings.telegram_token);
-                }       
-                // End Add
 
 
                 //initialize the deepstack class - it collects info from running deepstack processes, detects install location, and

@@ -321,7 +321,6 @@ namespace AITool
             using var Trace = new Trace();  //This c# 8.0 using feature will auto dispose when the function is done.
 
             bool ret = true;
-            MayoFunctions MayoFunc = new MayoFunctions(); // Mayo Add
 
             //mostly for testing when we dont have a current image...
             if (AQI.CurImg == null)
@@ -352,8 +351,7 @@ namespace AITool
 
                     if (AQI.cam.Action_image_merge_detections && AQI.Trigger)
                     {
-                        //tmpfile = await MergeImageAnnotations(AQI);
-                        tmpfile = await MayoFunc.MergeImageAnnotations(AQI);
+                        tmpfile = await this.MergeImageAnnotations(AQI);
 
                         if (!string.Equals(AQI.CurImg.image_path, tmpfile, StringComparison.OrdinalIgnoreCase) && System.IO.File.Exists(tmpfile))  //it wont exist if no detections or failure...
                         {
@@ -574,27 +572,6 @@ namespace AITool
 
                     }
 
-                    if (AQI.cam.telegram_mask_enabled && AQI.Trigger)
-                    {
-                        string telegram_file = "temp\\" + Path.GetFileName(AQI.CurImg.image_path).Insert((Path.GetFileName(AQI.CurImg.image_path).Length - 4), "_telegram");
-
-                        if (System.IO.File.Exists(telegram_file))
-                        {
-                            if (!await MayoFunc.SendImageToTelegram(AQI))
-                            {
-                                ret = false;
-                                Log($"{CurSrv} -    -> ERROR sending image to Telegram Mask.");
-                            }
-                            else
-                            {
-                                Log($"{CurSrv} -    -> Sent image to Telegram Mask.");
-                            }
-                        }
-                        else
-                        {
-                            Log($"{CurSrv} -    -> No Telegram Mask Image Found.");
-                        }
-                    }
 
                     if (AQI.Trigger)
                     {
