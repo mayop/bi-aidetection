@@ -516,7 +516,7 @@ namespace AITool
         }
 
         // ************************************************************************
-        public async Task<bool> SendImageToTelegram(ClsTriggerActionQueueItem AQI)
+        /*public async Task<bool> SendImageToTelegram(ClsTriggerActionQueueItem AQI)
         {
             bool bReturn = false;
 
@@ -558,7 +558,7 @@ namespace AITool
             }
 
             return bReturn;
-        }
+        }*/
 
         // ************************************************************************
         public bool TelegramOutsideMask(string cameraname, double xmin, double xmax, double ymin, double ymax, int width, int height)
