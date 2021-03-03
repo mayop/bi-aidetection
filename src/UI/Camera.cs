@@ -127,8 +127,6 @@ namespace AITool
         public int threshold_lower { get; set; } = 30;
         public int threshold_upper { get; set; } = 100;
 
-        public bool telegram_mask_enabled = false; // Mayo Added
-
         //watch folder for each camera
         public string input_path { get; set; } = "";
         public bool input_path_includesubfolders { get; set; } = false;

@@ -29,7 +29,7 @@
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Frm_LegacyActions));            
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Frm_LegacyActions));
             this.btnCancel = new System.Windows.Forms.Button();
             this.btnSave = new System.Windows.Forms.Button();
             this.groupBoxMQTT = new System.Windows.Forms.GroupBox();
@@ -110,7 +110,7 @@
             this.panel1.SuspendLayout();
             this.groupBoxUrlCancel.SuspendLayout();
             this.groupBoxUrlTrigger.SuspendLayout();
-            this.SuspendLayout();            
+            this.SuspendLayout();
             // 
             // btnCancel
             // 

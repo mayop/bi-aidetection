@@ -48,7 +48,7 @@
     <RunCodeAnalysis>false</RunCodeAnalysis>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <PlatformTarget>x64</PlatformTarget>
+    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
@@ -468,7 +468,6 @@
       <DependentUpon>Frm_MQTTSettings.cs</DependentUpon>
     </Compile>
     <Compile Include="Global-GUI.cs" />
-    <Compile Include="MayoFunctions.cs" />
     <Compile Include="MessageManager.cs" />
     <Compile Include="NamedPipeWrapper\NamedPipeClient.cs" />
     <Compile Include="NamedPipeWrapper\NamedPipeConnection.cs" />
