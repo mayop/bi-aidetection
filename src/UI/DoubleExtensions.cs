@@ -13,7 +13,7 @@ namespace AITool
             try
             {
                 if (!val.IsNull())
-                    return Convert.ToInt32(val);  //I believe ToInt32 rounds up so 1.5 is 2
+                    return Convert.ToInt32(val);  //I believe ToInt32 rounds up so 1.5 is 2.  (int) just truncates the decimal
             }
             catch { }
 
@@ -30,7 +30,7 @@ namespace AITool
 
             return 0;
         }
-        public static double Round(this double val, int Places = 2)
+        public static double Round(this double val, int Places = 1)
         {
             try
             {
@@ -41,7 +41,7 @@ namespace AITool
 
             return 0;
         }
-        public static string ToPercent(this double val, int Places = 2)
+        public static string ToPercent(this double val, int Places = 1)
         {
             string chars = "";
             if (Places > 0)
