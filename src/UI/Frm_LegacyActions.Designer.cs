@@ -29,8 +29,7 @@
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Frm_LegacyActions));
-            this.cb_mask_telegram = new System.Windows.Forms.CheckBox();
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Frm_LegacyActions));            
             this.btnCancel = new System.Windows.Forms.Button();
             this.btnSave = new System.Windows.Forms.Button();
             this.groupBoxMQTT = new System.Windows.Forms.GroupBox();
@@ -111,18 +110,7 @@
             this.panel1.SuspendLayout();
             this.groupBoxUrlCancel.SuspendLayout();
             this.groupBoxUrlTrigger.SuspendLayout();
-            this.SuspendLayout();
-            // 
-            // cb_mask_telegram
-            // 
-            this.cb_mask_telegram.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.cb_mask_telegram.AutoSize = true;
-            this.cb_mask_telegram.Location = new System.Drawing.Point(740, 79);
-            this.cb_mask_telegram.Name = "cb_mask_telegram";
-            this.cb_mask_telegram.Size = new System.Drawing.Size(105, 19);
-            this.cb_mask_telegram.TabIndex = 3;
-            this.cb_mask_telegram.Text = "Telegram Mask";
-            this.cb_mask_telegram.UseVisualStyleBackColor = true;
+            this.SuspendLayout();            
             // 
             // btnCancel
             // 

@@ -3646,7 +3646,6 @@ namespace AITool
                 //frm.tb_telegram_triggering_objects.Text = cam.telegram_triggering_objects;
 
                 frm.cb_telegram_active_time.Text = cam.telegram_active_time_range;
-                frm.cb_mask_telegram.Checked = cam.telegram_mask_enabled; // Mayo Added
 
                 frm.cb_copyAlertImages.Checked = cam.Action_image_copy_enabled;
                 frm.tb_network_folder_filename.Text = cam.Action_network_folder_filename;

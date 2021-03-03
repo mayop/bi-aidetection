@@ -83,10 +83,10 @@ namespace AITool
                                         lasttext = pred.ToString();
                                         //lasttext = $"{cam.last_detections[i]} {String.Format(AppSettings.Settings.DisplayPercentageFormat, AQI.cam.last_confidences[i] * 100)}";  
 
-                                        int xmin = pred.XMin + AQI.cam.XOffset;
-                                        int ymin = pred.YMin + AQI.cam.YOffset;
-                                        int xmax = pred.XMax;
-                                        int ymax = pred.YMax;
+                                        double xmin = pred.XMin + AQI.cam.XOffset;
+                                        double ymin = pred.YMin + AQI.cam.YOffset;
+                                        double xmax = pred.XMax;
+                                        double ymax = pred.YMax;
 
                                         if (AQI.cam.telegram_mask_enabled && !bSendTelegramMessage)
                                         {
@@ -98,7 +98,7 @@ namespace AITool
                                         else if (img.Height >= 800 && img.Height <= 1200) { penSize = 3; }
 
                                         boxColor = Color.FromArgb(150, this.GetBoxColor(AQI.cam.last_detections[countr]));
-                                        rect = new System.Drawing.Rectangle(xmin, ymin, xmax - xmin, ymax - ymin);
+                                        rect = new System.Drawing.Rectangle(xmin.ToInt(), ymin.ToInt(), xmax.ToInt() - xmin.ToInt(), ymax.ToInt() - ymin.ToInt());
                                         using (Pen pen = new Pen(boxColor, penSize)) { g.DrawRectangle(pen, rect); } //draw rectangle
 
                                         // Text Color       
@@ -109,11 +109,11 @@ namespace AITool
                                         Font textFont = new Font(AppSettings.Settings.RectDetectionTextFont, fontSize);
 
                                         //object name text below rectangle
-                                        rect = new System.Drawing.Rectangle(xmin - 1, ymax, (int)img.Width, (int)img.Height); //sets bounding box for drawn text
+                                        rect = new System.Drawing.Rectangle(xmin.ToInt() - 1, ymax.ToInt(), (int)img.Width, (int)img.Height); //sets bounding box for drawn text
                                         rectBrush = new SolidBrush(boxColor); //sets background rectangle color
 
                                         size = g.MeasureString(lasttext, textFont); //finds size of text to draw the background rectangle
-                                        g.FillRectangle(rectBrush, xmin - 1, ymax, size.Width, size.Height); //draw background rectangle for detection text
+                                        g.FillRectangle(rectBrush, xmin.ToInt() - 1, ymax.ToInt(), size.Width, size.Height); //draw background rectangle for detection text
                                         g.DrawString(lasttext, textFont, textColor, rect); //draw detection text
 
                                         g.Flush();
