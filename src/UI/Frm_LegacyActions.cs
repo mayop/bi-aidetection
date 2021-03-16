@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Windows.Forms;
+
 using static AITool.AITOOL;
 
 namespace AITool
@@ -48,12 +49,15 @@ namespace AITool
                 frm.cb_UseTLS.Checked = AppSettings.Settings.mqtt_UseTLS;
                 frm.tb_Password.Text = AppSettings.Settings.mqtt_password;
                 frm.tb_Username.Text = AppSettings.Settings.mqtt_username;
+                frm.tb_ClientID.Text = AppSettings.Settings.mqtt_clientid;
 
                 frm.tb_LWTTopic.Text = AppSettings.Settings.mqtt_LastWillTopic;
                 frm.tb_LWTPayload.Text = AppSettings.Settings.mqtt_LastWillPayload;
 
                 frm.tb_Topic.Text = this.tb_MQTT_Topic.Text.Trim();
                 frm.tb_Payload.Text = this.tb_MQTT_Payload.Text.Trim();
+
+                frm.cb_Retain.Checked = this.cam.Action_mqtt_retain_message;
 
                 if (frm.ShowDialog() == DialogResult.OK)
                 {
@@ -62,6 +66,7 @@ namespace AITool
                     AppSettings.Settings.mqtt_username = frm.tb_Username.Text.Trim();
                     AppSettings.Settings.mqtt_serverandport = frm.tb_ServerPort.Text.Trim();
                     AppSettings.Settings.mqtt_password = frm.tb_Password.Text.Trim();
+                    AppSettings.Settings.mqtt_clientid = frm.tb_ClientID.Text.Trim();
 
                     AppSettings.Settings.mqtt_LastWillTopic = frm.tb_LWTTopic.Text.Trim();
                     AppSettings.Settings.mqtt_LastWillPayload = frm.tb_LWTPayload.Text.Trim();
@@ -69,6 +74,7 @@ namespace AITool
                     this.tb_MQTT_Payload.Text = frm.tb_Payload.Text.Trim();
                     this.tb_MQTT_Topic.Text = frm.tb_Topic.Text.Trim();
 
+                    this.cam.Action_mqtt_retain_message = frm.cb_Retain.Checked;
 
                     AppSettings.SaveAsync();
 

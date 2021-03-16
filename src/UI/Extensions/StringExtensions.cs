@@ -111,6 +111,14 @@ namespace AITool
             return value.Substring(0, maxLength);
 
         }
+        [DebuggerStepThrough]
+        public static string ReplaceChars(this string value, char replacechar)
+        {
+            if (string.IsNullOrEmpty(value)) return value;
+
+            return new string(replacechar, value.Length);
+
+        }
 
         [DebuggerStepThrough]
         public static double ToDouble(this string value)
@@ -132,10 +140,11 @@ namespace AITool
         [DebuggerStepThrough]
         public static bool IsEmpty(this string value)
         {
-            if (string.IsNullOrWhiteSpace(value))
-                return true;
-            else
-                return false;
+            return string.IsNullOrWhiteSpace(value);
+        }
+        public static bool IsNotEmpty(this string value)
+        {
+            return !string.IsNullOrWhiteSpace(value);
         }
 
         [DebuggerStepThrough]

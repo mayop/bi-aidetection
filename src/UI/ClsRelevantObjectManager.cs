@@ -131,7 +131,7 @@ namespace AITool
 
             this.Init(cam);
 
-            if (!Objects.IsEmpty())
+            if (!Objects.Trim(", ".ToCharArray()).IsEmpty())
                 this.ObjectList = this.FromString(Objects, true, true);
             else
                 this.Reset();
@@ -157,24 +157,29 @@ namespace AITool
                     //migrate from the dictionary to the list - dictionary no longer used
                     if (!this.ObjectDict.IsNull())
                     {
-                        ObjectList.Clear();
-                        foreach (Object item in ObjectDict.Values)
+                        if (this.ObjectDict.Count > 0)
                         {
-                            if (item is DictionaryEntry)
+                            ObjectList.Clear();
+                            foreach (Object item in ObjectDict.Values)
                             {
-                                ClsRelevantObject ro = (ClsRelevantObject)((DictionaryEntry)item).Value;
-                                ObjectList.Add(ro.CloneJson());
+                                if (item is DictionaryEntry)
+                                {
+                                    ClsRelevantObject ro = (ClsRelevantObject)((DictionaryEntry)item).Value;
+                                    ObjectList.Add(ro.CloneJson());
+                                }
+                                else if (item is ClsRelevantObject)
+                                {
+                                    ClsRelevantObject ro = (ClsRelevantObject)item;
+                                    ObjectList.Add(ro.CloneJson());
+                                }
+                                else
+                                {
+                                    AITOOL.Log($"Warn: Old object is {item.GetType().FullName}??");
+                                }
                             }
-                            else if (item is ClsRelevantObject)
-                            {
-                                ClsRelevantObject ro = (ClsRelevantObject)item;
-                                ObjectList.Add(ro.CloneJson());
-                            }
-                            else
-                            {
-                                AITOOL.Log($"Warn: Old object is {item.GetType().FullName}??");
-                            }
+
                         }
+
                         this.ObjectDict = null;
                     }
 
@@ -285,7 +290,7 @@ namespace AITool
         }
         public void Reset()
         {
-            AITOOL.Log("Using Relevant Objects list from the 'Default' camera.");
+            AITOOL.Log($"Using Relevant Objects list from the 'Default' camera for {this.TypeName} RelevantObjectManager.");
             this.ObjectList = this.GetDefaultObjectList(true);
         }
 
@@ -293,23 +298,32 @@ namespace AITool
         {
             List<ClsRelevantObject> ret = this._DefaultObjectsList;
             //get the default camera list
-            if (this.defaultcam.IsNull())
-                this.defaultcam = AITOOL.GetCamera("Default", true);
 
-            if (!this.defaultcam.IsNull())  //probably here to soon
+            try
             {
+                if (this.defaultcam.IsNull())
+                    this.defaultcam = AITOOL.GetCamera("Default", true);
 
-                if (this.defaultcam.DefaultTriggeringObjects.ObjectList.Count > 0 && !this.Camera.EqualsIgnoreCase(this.defaultcam.Name))
+                if (!this.defaultcam.IsNull())  //probably here to soon
                 {
-                    this._DefaultObjectsList = this.defaultcam.DefaultTriggeringObjects.CloneObjectList();
-                }
-                else
-                {
-                    this._DefaultObjectsList = this.FromString(AppSettings.Settings.ObjectPriority, Clear, false);
+
+                    if (this.defaultcam.DefaultTriggeringObjects.ObjectList.Count > 0 && !this.Camera.EqualsIgnoreCase(this.defaultcam.Name))
+                    {
+                        this._DefaultObjectsList = this.defaultcam.DefaultTriggeringObjects.CloneObjectList();
+                    }
+                    else
+                    {
+                        this._DefaultObjectsList = this.FromString(AppSettings.Settings.ObjectPriority, Clear, false);
+                    }
+
+                    ret = this._DefaultObjectsList;
+
                 }
 
-                ret = this._DefaultObjectsList;
-
+            }
+            catch (Exception ex)
+            {
+                AITOOL.Log($"Error: ({this.TypeName}) {ex.Msg()}");
             }
 
             return ret;
